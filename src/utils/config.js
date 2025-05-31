@@ -24,6 +24,9 @@ const config = {
     executablePath: 'C:\\Program Files\\dslrBooth\\dslrBooth.exe',
     // Atau jika di tempat lain: 'D:\\dslrBooth\\dslrBooth.exe'
   },
+  autoHotkey: {
+    executablePath: 'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey.exe' // GANTI DENGAN PATH YANG BENAR DI MESINMU
+  },
   app: {
     // URL domain aplikasi (jika suatu saat kamu perlu, misalnya untuk return_url yang bisa diakses)
     // Untuk sekarang, ini hanya placeholder jika pembayaran membuka browser eksternal

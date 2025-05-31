@@ -4,6 +4,16 @@
   "version": "1.0.0",
   "description": "Aplikasi Photobooth dengan sistem pembayaran.",
   "main": "main.js",
+
+  "build": {
+  "extraResources": [
+    {
+      "from": "./scripts",
+      "to": "scripts",
+      "filter": ["**/*"]
+    }
+  ]
+},
   "scripts": {
     "start": "electron-forge start",
     "test": "echo \"Error: no test specified\" && exit 1",
