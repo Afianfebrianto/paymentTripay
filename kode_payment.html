@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Photobooth Kilat - Masukkan Kode</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      body {
+        margin: 0;
+        font-family: "Segoe UI", sans-serif;
+        background: url("./assets/background.jpg") no-repeat center center fixed;
+        background-size: cover;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        position: relative;
+      }
+
+      .container {
+        background-color: rgba(255, 255, 255, 0.95);
+        padding: 80px;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        text-align: center;
+        width: 500px;
+      }
+
+      h1 {
+        margin-bottom: 30px;
+        font-size: 32px;
+        color: #444;
+      }
+
+      label {
+        font-size: 20px;
+        font-weight: bold;
+        display: block;
+        margin-bottom: 15px;
+        color: #333;
+      }
+
+      input[type="text"] {
+        width: 100%;
+        padding: 15px;
+        font-size: 24px;
+        border: 3px solid rgb(5, 5, 5);
+        border-radius: 12px;
+        text-align: center;
+        outline: none;
+      }
+
+      button {
+        margin-top: 25px;
+        padding: 18px 40px;
+        font-size: 22px;
+        background-color: rgb(10, 10, 10);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+
+      button:hover {
+        background-color: darkgoldenrod;
+      }
+
+      .message {
+        margin-top: 20px;
+        font-size: 20px;
+        font-weight: bold;
+      }
+
+      .error {
+        color: red;
+      }
+
+      .success {
+        color: green;
+      }
+
+      .back-button {
+        position: absolute;
+        bottom: 30px;
+        left: 30px;
+        padding: 14px 28px;
+        font-size: 18px;
+        background-color: #070707;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+
+      .back-button:hover {
+        background-color: darkgoldenrod;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Masukkan Kode Pembayaran</h1>
+
+      <label for="kodePembayaran">Kode:</label>
+      <input
+        type="text"
+        id="kodePembayaran"
+        placeholder="Silahkan masukkan kode pembayaran anda"
+        autocomplete="off"
+        autofocus
+      />
+
+      <button onclick="verifikasiKode()">Lanjutkan</button>
+
+      <div class="message" id="messageBox"></div>
+    </div>
+
+    <button class="back-button" onclick="goBack()">← Kembali</button>
+
+    <script>
+      function verifikasiKode() {
+        const input = document.getElementById("kodePembayaran").value.trim();
+        const messageBox = document.getElementById("messageBox");
+
+        if (input === "") {
+          messageBox.textContent =
+            "Silakan masukkan kode pembayaran terlebih dahulu.";
+          messageBox.className = "message error";
+          return;
+        }
+
+        const kodeValid = ["ABC123", "KILAT2025", "TEST001"];
+
+        if (kodeValid.includes(input.toUpperCase())) {
+          messageBox.textContent = "Kode valid. Memulai photobooth...";
+          messageBox.className = "message success";
+
+          setTimeout(() => {
+            alert("Photobooth dimulai!");
+            // Di sini bisa redirect ke halaman photobooth jika diperlukan
+          }, 1500);
+        } else {
+          messageBox.textContent = "Kode salah. Silakan coba lagi.";
+          messageBox.className = "message error";
+        }
+      }
+
+      document
+        .getElementById("kodePembayaran")
+        .addEventListener("keydown", function (e) {
+          if (e.key === "Enter") {
+            verifikasiKode();
+          }
+        });
+
+      function goBack() {
+        // Ganti 'payment-method.html' sesuai file halaman utama metode pembayaran kamu
+        window.location.href = "payment.html";
+      }
+    </script>
+  </body>
+</html>

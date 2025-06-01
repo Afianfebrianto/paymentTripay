@@ -55,7 +55,7 @@ header h1 {
 }
 
 #payButton {
-    background-color: #3498db;
+    background-color: #070707;
     color: white;
     padding: 12px 25px;
     border: none;
@@ -67,7 +67,7 @@ header h1 {
 }
 
 #payButton:hover {
-    background-color: #2980b9;
+    background-color: darkgoldenrod;
 }
 
 #payButton:disabled {

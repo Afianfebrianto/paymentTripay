@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Photobooth Kilat - Pembayaran</title>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://tripay.co.id;"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      .back-button {
+        position: fixed;
+        bottom: 25px;
+        left: 25px;
+        padding: 14px 28px;
+        font-size: 18px;
+        background-color: #0c0c0c;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background 0.3s;
+        z-index: 999;
+      }
+
+      .back-button:hover {
+        background-color: darkgoldenrod;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Welcome ShooteraSnap</h1>
+        <p class="base-price">
+          Harga Normal: Rp <span id="hargaNormal">35,000</span>
+        </p>
+      </header>
+
+      <section id="voucher-section">
+        <label for="voucherCode">Voucher:</label>
+        <input
+          type="text"
+          id="voucherCode"
+          name="voucherCode"
+          placeholder="Masukkan Kode Voucher Jika Ada"
+        />
+        <label for="voucherCode"
+          >Jika tidak mempunyai voucher, silahkan langsung klik bayar</label
+        >
+      </section>
+
+      <section id="action-section">
+        <button id="payButton">Bayar</button>
+      </section>
+
+      <section id="payment-details-section" style="display: none">
+        <h2>Detail Pembayaran:</h2>
+        <div id="payment-instructions">
+          <p>Metode: <span id="paymentMethodText">-</span></p>
+          <p>
+            Silakan lakukan pembayaran sebesar:
+            <strong>Rp <span id="paymentAmountText">-</span></strong>
+          </p>
+          <div
+            id="qrCodeContainer"
+            style="display: none; margin-top: 15px; text-align: center"
+          >
+            <img
+              id="qrCodeImage"
+              src=""
+              alt="QR Code Pembayaran"
+              style="max-width: 280px; border: 1px solid #ccc; padding: 5px"
+            />
+          </div>
+          <p id="vaContainer" style="display: none">
+            Nomor Virtual Account: <strong id="vaNumberText">-</strong>
+          </p>
+          <p id="paymentLinkContainer" style="display: none">
+            Link Pembayaran:
+            <a href="#" id="externalPaymentLink" target="_blank"
+              >Klik di sini untuk bayar</a
+            >
+          </p>
+          <p class="expiry-info">
+            Bayar sebelum: <span id="expiryTimeText">-</span>
+          </p>
+        </div>
+      </section>
+
+      <section id="status-section">
+        <p>
+          Status Pembayaran:
+          <strong id="paymentStatusText">Menunggu Aksi</strong>
+        </p>
+        <p id="errorMessage" class="error-message" style="display: none"></p>
+      </section>
+
+      <section id="dslrbooth-status-section" style="display: none">
+        <p id="dslrboothStatusText"></p>
+      </section>
+    </div>
+
+    <!-- Tombol kembali -->
+    <button class="back-button" id="backButton">← Kembali</button>
+
+    <!-- Script dari renderer -->
+    <script src="./renderer.js"></script>
+
+    <!-- Script tombol kembali -->
+    <script>
+      document.getElementById("backButton").addEventListener("click", () => {
+        // Ganti path berikut sesuai dengan halaman sebelumnya
+        window.location.href = "payment.html"; // Misalnya: "metode-pembayaran.html"
+      });
+    </script>
+  </body>
+</html>
