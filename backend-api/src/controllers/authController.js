@@ -2,7 +2,7 @@
 const db = require('../db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-require('dotenv').config({ path: '../../.env' });
+// require('dotenv').config(); // Tidak perlu jika sudah di server.js paling atas
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h'; // Token berlaku 1 jam by default
@@ -33,7 +33,6 @@ exports.login = async (req, res) => {
             return res.status(401).json({ success: false, message: 'Username atau password salah.' });
         }
 
-        // Buat token JWT
         const tokenPayload = {
             userId: user.id,
             username: user.username,
@@ -42,11 +41,21 @@ exports.login = async (req, res) => {
 
         const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
+        // Set token sebagai httpOnly cookie
+        res.cookie('adminAuthToken', token, {
+            httpOnly: true, // Cookie tidak bisa diakses via JavaScript di client
+            secure: process.env.NODE_ENV === 'production', // Hanya kirim via HTTPS di produksi
+            maxAge: parseInt(JWT_EXPIRES_IN) * 1000 || 3600000, // Durasi cookie dalam milidetik (default 1 jam)
+            // sameSite: 'lax' // atau 'strict' untuk proteksi CSRF
+        });
+
+        // Kirim respons JSON seperti biasa, client-side JS bisa menggunakannya untuk konfirmasi
         res.json({
             success: true,
             message: 'Login berhasil.',
-            token: token,
-            user: { // Kirim beberapa info user, tapi jangan password_hash
+            // Token tidak perlu dikirim di body lagi jika sudah di cookie httpOnly
+            // token: token, 
+            user: {
                 id: user.id,
                 username: user.username,
                 role: user.role
@@ -59,5 +68,15 @@ exports.login = async (req, res) => {
     }
 };
 
-// Nanti bisa ditambahkan fungsi register jika perlu, tapi harus sangat diamankan
-// exports.register = async (req, res) => { ... }
+// Tambahkan fungsi logout untuk menghapus cookie
+exports.logout = (req, res) => {
+    res.cookie('adminAuthToken', '', {
+        httpOnly: true,
+        expires: new Date(0) // Set cookie kedaluwarsa
+    });
+    // Redirect ke halaman login setelah logout, atau kirim respons JSON
+    // Jika dipanggil dari client-side JS yang mengharapkan JSON:
+    // res.json({ success: true, message: 'Logout berhasil.' });
+    // Jika ingin redirect langsung dari server (misalnya jika form logout adalah POST biasa):
+    res.redirect('/admin/login');
+};

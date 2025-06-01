@@ -1,0 +1,60 @@
+<%# backend-api/src/views/dashboard.ejs %>
+
+<%# Variabel ini akan digunakan oleh admin_layout.ejs %>
+<% locals.title = "Dashboard"; %>
+<% locals.pageHeading = "Dashboard Utama"; %>
+<% locals.currentPath = "/admin/dashboard"; %> <%# Untuk menandai menu aktif di sidebar %>
+
+<div class="row">
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Transaksi (Bulan Ini)</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">Rp 5,000,000</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Total Voucher Terpakai</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">120</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-tags fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+<div class="row">
+    <div class="col-lg-12">
+        <p>Selamat datang di panel admin Photobooth! Gunakan menu di samping untuk navigasi dan mengelola aplikasi.</p>
+        </div>
+</div>
+
+<%# Jika halaman ini butuh script JS plugin spesifik dari template (misal, chart) %>
+<% /*
+locals.page_plugins_scripts = `
+    <script src="/sb-admin-2/vendor/chart.js/Chart.min.js"></script>
+`;
+locals.page_custom_scripts = `
+    <script src="/sb-admin-2/js/demo/chart-area-demo.js"></script>
+    <script src="/sb-admin-2/js/demo/chart-pie-demo.js"></script>
+`;
+*/ %>

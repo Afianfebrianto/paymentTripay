@@ -9,23 +9,62 @@ if (!JWT_SECRET) {
     process.exit(1);
 }
 
-const authenticateToken = (req, res, next) => {
+// Middleware untuk API (Bearer Token)
+const authenticateTokenApi = (req, res, next) => {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    const token = authHeader && authHeader.split(' ')[1];
 
     if (token == null) {
-        return res.status(401).json({ success: false, message: 'Akses ditolak: Token tidak disediakan.' });
+        return res.status(401).json({ success: false, message: 'Akses API ditolak: Token tidak disediakan.' });
     }
 
     jwt.verify(token, JWT_SECRET, (err, user) => {
         if (err) {
-            console.error("Error verifikasi JWT:", err.message);
-            return res.status(403).json({ success: false, message: 'Akses ditolak: Token tidak valid atau kedaluwarsa.' });
+            return res.status(403).json({ success: false, message: 'Akses API ditolak: Token tidak valid.' });
         }
-        req.user = user; // Simpan informasi user dari token ke object request
-        next(); // Lanjutkan ke handler route berikutnya
+        req.user = user;
+        next();
     });
 };
+
+// Middleware baru untuk otentikasi halaman web (via Cookie)
+const authenticatePage = (req, res, next) => {
+    const token = req.cookies.adminAuthToken; // Ambil token dari cookie
+
+    if (!token) {
+        // Jika tidak ada token, redirect ke halaman login
+        return res.redirect('/admin/login');
+    }
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded; // Simpan info user ke request
+        next(); // Lanjutkan ke halaman yang diminta
+    } catch (err) {
+        // Jika token tidak valid, hapus cookie yang salah dan redirect ke login
+        console.warn("Token cookie tidak valid:", err.message);
+        res.clearCookie('adminAuthToken');
+        return res.redirect('/admin/login');
+    }
+};
+
+// Middleware untuk mengecek apakah pengguna SUDAH login (untuk halaman seperti / atau /admin/login)
+const redirectIfLoggedIn = (redirectTo = '/admin/dashboard') => {
+    return (req, res, next) => {
+       const token = req.cookies && req.cookies.adminAuthToken;
+        if (token) {
+            try {
+                jwt.verify(token, JWT_SECRET); // Cukup verifikasi, tidak perlu simpan user di req
+                return res.redirect(redirectTo); // Jika token valid, redirect
+            } catch (err) {
+                // Token tidak valid, hapus cookie dan lanjutkan (agar bisa ke halaman login)
+                res.clearCookie('adminAuthToken');
+            }
+        }
+        next(); // Tidak ada token atau token tidak valid, lanjutkan ke route yang diminta (misal /admin/login)
+    };
+};
+
 
 // Middleware untuk mengecek role (opsional, jika kamu punya role berbeda)
 const authorizeRole = (roles = []) => {
@@ -44,6 +83,8 @@ const authorizeRole = (roles = []) => {
 
 
 module.exports = {
-    authenticateToken,
+    authenticateTokenApi, // Untuk API
+    authenticatePage,     // Untuk melindungi halaman admin
+    redirectIfLoggedIn,   // Untuk halaman login dan root
     authorizeRole
 };
