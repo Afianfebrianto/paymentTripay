@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dslrboothStatusSection = document.getElementById('dslrbooth-status-section');
     const dslrboothStatusTextElement = document.getElementById('dslrboothStatusText');
 
-    const BASE_PRICE = 50000; // Harga normal produk/sesi, sesuaikan
+    const BASE_PRICE = 35000; // Harga normal produk/sesi, sesuaikan
     const DEFAULT_PAYMENT_METHOD = 'QRIS'; // Metode pembayaran default
 
     hargaNormalElement.textContent = BASE_PRICE.toLocaleString('id-ID');
