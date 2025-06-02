@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h'; // Token berlaku 1 jam by default
+ const isSecureEnvironment = process.env.NODE_ENV === 'production';
 
 exports.login = async (req, res) => {
     const { username, password } = req.body;
@@ -41,13 +42,13 @@ exports.login = async (req, res) => {
 
         const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
-        // Set token sebagai httpOnly cookie
         res.cookie('adminAuthToken', token, {
-            httpOnly: true, // Cookie tidak bisa diakses via JavaScript di client
-            secure: process.env.NODE_ENV === 'production', // Hanya kirim via HTTPS di produksi
-            maxAge: parseInt(JWT_EXPIRES_IN) * 1000 || 3600000, // Durasi cookie dalam milidetik (default 1 jam)
-            // sameSite: 'lax' // atau 'strict' untuk proteksi CSRF
-        });
+        httpOnly: true,
+        secure: isSecureEnvironment, // Hanya true jika di produksi (asumsi produksi selalu HTTPS)
+        maxAge: parseInt(JWT_EXPIRES_IN) * 1000 || 3600000, // 1 jam
+        path: '/', // Berlaku untuk seluruh domain
+        sameSite: 'Lax' // Pilihan yang baik untuk keseimbangan keamanan dan fungsionalitas
+    });
 
         // Kirim respons JSON seperti biasa, client-side JS bisa menggunakannya untuk konfirmasi
         res.json({

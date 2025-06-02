@@ -10,17 +10,14 @@ const db = require('./src/db'); // Impor setup database kita
 // Impor Routes
 const authRoutes = require('./src/routes/authRoutes');
 const voucherRoutes = require('./src/routes/voucherRoutes');
-// Impor middleware otentikasi
 const { authenticatePage, redirectIfLoggedIn, authorizeRole } = require('./src/middleware/authMiddleware');
 const expressLayouts = require('express-ejs-layouts');
-
-
-// const cashCodeRoutes = require('./src/routes/cashCodeRoutes');
-// const transactionRoutes = require('./src/routes/transactionRoutes');
-// const reportRoutes = require('./src/routes/reportRoutes');
-
 const app = express();
 const PORT = process.env.API_PORT || 4000;
+
+
+require('dotenv').config();
+console.log("SERVER_JS: NODE_ENV =", process.env.NODE_ENV);
 
 // Setup EJS
 app.set('view engine', 'ejs');
@@ -34,6 +31,8 @@ app.use(bodyParser.json()); // Untuk parsing application/json
 app.use(bodyParser.urlencoded({ extended: true })); // Untuk parsing application/x-www-form-urlencoded
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(cookieParser(process.env.COOKIE_SECRET));
+app.use(expressLayouts);
+app.set('layout', 'layouts/admin_layout'); 
 
 // --- Routes API akan didefinisikan di sini ---
 
@@ -47,15 +46,6 @@ app.use('/api/vouchers', voucherRoutes);
 
 // Root path (/)
 app.get('/', redirectIfLoggedIn('/admin/dashboard'), (req, res) => {
-    // Jika redirectIfLoggedIn tidak melakukan redirect (karena tidak ada token valid),
-    // maka kita arahkan ke login.
-    // Sebenarnya, redirectIfLoggedIn('/admin/dashboard') akan menangani kasus sudah login,
-    // dan jika tidak, ia akan memanggil next(). Maka, kita perlu aksi jika next() dipanggil.
-    // Lebih baik:
-    // app.get('/', (req, res) => { res.redirect('/admin/login'); });
-    // ATAU:
-    // Jika sudah login, redirectIfLoggedIn akan redirect ke dashboard.
-    // Jika tidak, dia akan next(), dan kita redirect ke login.
     res.redirect('/admin/login');
 });
 
@@ -64,6 +54,7 @@ app.get('/', redirectIfLoggedIn('/admin/dashboard'), (req, res) => {
 // Jika sudah login, redirect ke dashboard. Jika belum, tampilkan halaman login.
 app.get('/admin/login', redirectIfLoggedIn('/admin/dashboard'), (req, res) => {
     res.render('login', { 
+        layout: false,
         title: 'Admin Login', 
         error: req.query.error, // Ambil error dari query param jika ada redirect
         success: req.query.success 
@@ -86,6 +77,52 @@ app.get('/admin/dashboard', authenticatePage, (req, res) => {
         currentPath: req.path 
     });
 });
+
+// Halaman Generate Kode Cash
+app.get('/admin/cash-codes/generate', authenticatePage, authorizeRole(['admin', 'kasir']), (req, res) => {
+    res.render('admin-generate-cash-code', { // Buat file admin-generate-cash-code.ejs
+        user: req.user,
+        currentPath: req.path,
+        // title: "Generate Kode Cash" // Bisa di-set di EJS file nya langsung
+    });
+});
+
+// Halaman Manajemen Voucher
+app.get('/admin/vouchers', authenticatePage, authorizeRole(['admin', 'kasir']), (req, res) => {
+    // Nanti kita akan ambil data voucher dari DB di sini
+    res.render('admin-vouchers', { // Buat file admin-vouchers.ejs
+        user: req.user,
+        currentPath: req.path,
+        vouchers: [] // Kirim array kosong dulu untuk data voucher
+    });
+});
+
+// Halaman Daftar Transaksi
+app.get('/admin/transactions', authenticatePage, authorizeRole(['admin', 'kasir']), (req, res) => {
+    // Nanti kita akan ambil data transaksi dari DB di sini
+    res.render('admin-transactions', { // Buat file admin-transactions.ejs
+        user: req.user,
+        currentPath: req.path,
+        transactions: [] // Kirim array kosong dulu
+    });
+});
+
+// Halaman Laporan (jika masih dipakai)
+app.get('/admin/reports', authenticatePage, authorizeRole(['admin']), (req, res) => {
+    res.render('admin-reports', { // Buat file admin-reports.ejs
+        user: req.user,
+        currentPath: req.path
+    });
+});
+
+
+
+
+
+
+
+
+
 // --- Nanti kita tambahkan routes untuk Voucher, Transaksi, Kode Cash, dll. ---
 // const voucherRoutes = require('./src/routes/voucherRoutes');
 // app.use('/api/vouchers', voucherRoutes);

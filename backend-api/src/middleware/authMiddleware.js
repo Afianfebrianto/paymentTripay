@@ -29,25 +29,30 @@ const authenticateTokenApi = (req, res, next) => {
 
 // Middleware baru untuk otentikasi halaman web (via Cookie)
 const authenticatePage = (req, res, next) => {
-    const token = req.cookies.adminAuthToken; // Ambil token dari cookie
+    console.log('------------------------------------');
+    console.log(`AUTH_MIDDLEWARE: authenticatePage dipanggil untuk path: ${req.originalUrl}`);
+    console.log('AUTH_MIDDLEWARE: Cookies yang diterima server:', JSON.stringify(req.cookies, null, 2)); // Log semua cookies
+
+    const token = req.cookies && req.cookies.adminAuthToken;
 
     if (!token) {
-        // Jika tidak ada token, redirect ke halaman login
+        console.log('AUTH_MIDDLEWARE: Token adminAuthToken TIDAK ditemukan di cookies. Redirect ke /admin/login.');
         return res.redirect('/admin/login');
     }
 
+    console.log('AUTH_MIDDLEWARE: Token adminAuthToken ditemukan, mencoba verifikasi...');
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
         req.user = decoded; // Simpan info user ke request
+        console.log('AUTH_MIDDLEWARE: Token VALID. User:', JSON.stringify(req.user, null, 2));
         next(); // Lanjutkan ke halaman yang diminta
     } catch (err) {
-        // Jika token tidak valid, hapus cookie yang salah dan redirect ke login
-        console.warn("Token cookie tidak valid:", err.message);
-        res.clearCookie('adminAuthToken');
+        console.warn("AUTH_MIDDLEWARE: Token cookie TIDAK VALID atau kedaluwarsa. Menghapus cookie dan redirect ke /admin/login. Error:", err.message);
+        res.clearCookie('adminAuthToken'); // Hapus cookie yang salah
         return res.redirect('/admin/login');
     }
+    console.log('------------------------------------');
 };
-
 // Middleware untuk mengecek apakah pengguna SUDAH login (untuk halaman seperti / atau /admin/login)
 const redirectIfLoggedIn = (redirectTo = '/admin/dashboard') => {
     return (req, res, next) => {
