@@ -2,11 +2,14 @@
 const db = require('../db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-// require('dotenv').config(); // Tidak perlu jika sudah di server.js paling atas
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h'; // Token berlaku 1 jam by default
- const isSecureEnvironment = process.env.NODE_ENV === 'production';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h'; // Token berlaku 1 jam secara default
+
+if (!JWT_SECRET) {
+    console.error("Kesalahan Fatal: JWT_SECRET belum diatur di file .env.");
+    process.exit(1);
+}
 
 exports.login = async (req, res) => {
     const { username, password } = req.body;
@@ -16,21 +19,25 @@ exports.login = async (req, res) => {
     }
 
     try {
+        console.log(`AUTH_CONTROLLER: Mencoba login untuk user: ${username}`);
         const { rows } = await db.query('SELECT id, username, password_hash, role, is_active FROM admin_users WHERE username = $1', [username]);
 
         if (rows.length === 0) {
+            console.log(`AUTH_CONTROLLER: User ${username} tidak ditemukan.`);
             return res.status(401).json({ success: false, message: 'Username atau password salah.' });
         }
 
         const user = rows[0];
 
         if (!user.is_active) {
+            console.log(`AUTH_CONTROLLER: User ${username} tidak aktif.`);
             return res.status(403).json({ success: false, message: 'Akun pengguna tidak aktif.' });
         }
 
         const isPasswordMatch = await bcrypt.compare(password, user.password_hash);
 
         if (!isPasswordMatch) {
+            console.log(`AUTH_CONTROLLER: Password salah untuk user ${username}.`);
             return res.status(401).json({ success: false, message: 'Username atau password salah.' });
         }
 
@@ -42,20 +49,11 @@ exports.login = async (req, res) => {
 
         const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
-        res.cookie('adminAuthToken', token, {
-        httpOnly: true,
-        secure: isSecureEnvironment, // Hanya true jika di produksi (asumsi produksi selalu HTTPS)
-        maxAge: parseInt(JWT_EXPIRES_IN) * 1000 || 3600000, // 1 jam
-        path: '/', // Berlaku untuk seluruh domain
-        sameSite: 'Lax' // Pilihan yang baik untuk keseimbangan keamanan dan fungsionalitas
-    });
-
-        // Kirim respons JSON seperti biasa, client-side JS bisa menggunakannya untuk konfirmasi
+        console.log(`AUTH_CONTROLLER: Login berhasil untuk user ${username}. Token JWT dibuat.`);
         res.json({
             success: true,
             message: 'Login berhasil.',
-            // Token tidak perlu dikirim di body lagi jika sudah di cookie httpOnly
-            // token: token, 
+            token: token, // Kirim token di body respons
             user: {
                 id: user.id,
                 username: user.username,
@@ -64,20 +62,18 @@ exports.login = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error saat login:', error);
+        console.error('AUTH_CONTROLLER: Error saat login:', error);
         res.status(500).json({ success: false, message: 'Terjadi kesalahan pada server.' });
     }
 };
 
-// Tambahkan fungsi logout untuk menghapus cookie
+// Logout sekarang lebih merupakan aksi client-side (menghapus token dari localStorage)
+// Endpoint server ini bisa ada untuk invalidasi token sisi server jika kamu implementasi blacklist token,
+// tapi untuk sekarang, cukup respons sukses.
 exports.logout = (req, res) => {
-    res.cookie('adminAuthToken', '', {
-        httpOnly: true,
-        expires: new Date(0) // Set cookie kedaluwarsa
-    });
-    // Redirect ke halaman login setelah logout, atau kirim respons JSON
-    // Jika dipanggil dari client-side JS yang mengharapkan JSON:
-    // res.json({ success: true, message: 'Logout berhasil.' });
-    // Jika ingin redirect langsung dari server (misalnya jika form logout adalah POST biasa):
-    res.redirect('/admin/login');
+    // Jika kamu ingin mencatat logout di server atau melakukan sesuatu dengan token yang dikirim (misalnya blacklist),
+    // kamu bisa menggunakan middleware authenticateTokenApi di sini.
+    // Untuk sekarang, kita asumsikan klien hanya menghapus tokennya.
+    console.log("AUTH_CONTROLLER: Logout dipanggil (client-side akan menghapus token).");
+    res.json({ success: true, message: 'Logout berhasil dari sisi server. Klien harus menghapus token.' });
 };

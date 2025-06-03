@@ -1,61 +1,78 @@
-%# backend-api/src/views/dashboard.ejs %>
+<%# backend-api/src/views/dashboard.ejs %>
 
-%# Variabel ini akan digunakan oleh admin_layout.ejs %>
-% locals.title = "Dashboard"; %>
-% locals.pageHeading = "Dashboard Utama"; %>
-% locals.currentPath = "/admin/dashboard"; %> <%# Untuk menandai menu aktif di sidebar %>
+<%# Variabel ini akan digunakan oleh admin_layout.ejs %>
+<% locals.title = "Dashboard"; %>
+<% locals.pageHeading = "Dashboard Utama"; %>
+<% locals.currentPath = "/admin/dashboard"; %>
 
 <div class="row">
-
     <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-left-primary shadow h-100 py-2">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                            Transaksi (Bulan Ini)</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">Rp 5,000,000</div>
-                    </div>
-                    <div class="col-auto">
-                        <i class="fas fa-calendar fa-2x text-gray-300"></i>
-                    </div>
-                </div>
-            </div>
         </div>
-    </div>
-
     <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-left-success shadow h-100 py-2">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                            Total Voucher Terpakai</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">120</div>
-                    </div>
-                    <div class="col-auto">
-                        <i class="fas fa-tags fa-2x text-gray-300"></i>
-                    </div>
-                </div>
-            </div>
         </div>
-    </div>
-    </div>
+</div>
 
 <div class="row">
     <div class="col-lg-12">
         <p>Selamat datang di panel admin Photobooth! Gunakan menu di samping untuk navigasi dan mengelola aplikasi.</p>
-        </div>
-        <a href="/admin/cash-codes/generate">Tes Link ke Generate Kode Cash</a>
+    </div>
 </div>
 
-<%# Jika halaman ini butuh script JS plugin spesifik dari template (misal, chart) %>
-<% /*
-locals.page_plugins_scripts = `
-    <script src="/sb-admin-2/vendor/chart.js/Chart.min.js"></script>
+<hr class="my-4"> <%# Pemisah %>
+
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Informasi Debug Cookie (dari Server)</h6>
+            </div>
+            <div class="card-body">
+                <p>Klik tombol di bawah untuk meminta server menampilkan cookie yang diterimanya untuk sesi ini.</p>
+                <button id="checkServerCookiesButton" class="btn btn-warning">Cek Cookie yang Diterima Server</button>
+                <div id="serverCookieInfo" class="mt-3" style="white-space: pre-wrap; background-color: #f8f9fc; border: 1px solid #e3e6f0; padding: 15px; border-radius: .35rem; display: none; max-height: 400px; overflow-y: auto;">
+                    <p>Memuat...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%# Menambahkan skrip untuk tombol debug ke dalam blok page_custom_scripts %>
+<%
+let existingScripts = locals.page_custom_scripts || "";
+locals.page_custom_scripts = existingScripts + `
+<script>
+    // Pastikan DOM sudah siap sebelum memasang listener
+    document.addEventListener('DOMContentLoaded', () => {
+        const checkServerCookiesButton = document.getElementById('checkServerCookiesButton');
+        const serverCookieInfoDiv = document.getElementById('serverCookieInfo');
+
+        console.log('DEBUG: Tombol Cek Cookie ditemukan?', checkServerCookiesButton); // Tambahkan log ini
+        console.log('DEBUG: Div Info Cookie ditemukan?', serverCookieInfoDiv); // Tambahkan log ini
+
+        if (checkServerCookiesButton && serverCookieInfoDiv) { // Tambahkan pengecekan null
+            checkServerCookiesButton.addEventListener('click', async () => {
+                console.log('DEBUG: Tombol Cek Cookie DIKLIK!'); // Tambahkan log ini
+                serverCookieInfoDiv.style.display = 'block';
+                serverCookieInfoDiv.textContent = 'Meminta data ke server...';
+                try {
+                    // ... (sisa kode fetch seperti sebelumnya) ...
+                    const response = await fetch('/api/debug/check-cookies', { /* ... */ });
+                    const data = await response.json();
+                    console.log('DEBUG: Respons dari /api/debug/check-cookies:', data); // Tambahkan log ini
+                    if (response.ok) {
+                        serverCookieInfoDiv.textContent = JSON.stringify(data, null, 2);
+                    } else {
+                        // ... (error handling)
+                    }
+                } catch (error) {
+                    // ... (error handling)
+                }
+            });
+        } else {
+            console.error('DEBUG: Tombol atau Div Info Cookie tidak ditemukan di DOM.');
+        }
+    });
+</script>
 `;
-locals.page_custom_scripts = `
-    <script src="/sb-admin-2/js/demo/chart-area-demo.js"></script>
-    <script src="/sb-admin-2/js/demo/chart-pie-demo.js"></script>
-`;
-*/ %>
+%>

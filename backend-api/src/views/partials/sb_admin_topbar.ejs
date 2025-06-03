@@ -1,25 +1,47 @@
 <%# backend-api/src/views/partials/sb_admin_topbar.ejs %>
 <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
-
     <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
         <i class="fa fa-bars"></i>
     </button>
-
     <ul class="navbar-nav ml-auto">
-        <% if (user) { %>
+        <%# Variabel 'user' tidak lagi dikirim dari server ke template EJS ini secara langsung %>
+        <%# JavaScript di admin-auth.js akan mengisi info user dari localStorage %>
         <li class="nav-item dropdown no-arrow">
             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <span class="mr-2 d-none d-lg-inline text-gray-600 small"><%= user.username %> (<%= user.role %>)</span>
-                <img class="img-profile rounded-circle" src="/sb-admin-2/img/undraw_profile.svg"> </a>
+                <span class="mr-2 d-none d-lg-inline text-gray-600 small">
+                    <span class="loggedInUsername">Pengguna</span> (<span class="loggedInUserRole">Role</span>)
+                </span>
+                <img class="img-profile rounded-circle" src="/sb-admin-2/img/undraw_profile.svg">
+            </a>
             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
                 aria-labelledby="userDropdown">
-                <a class="dropdown-item" href="#" data-toggle="modal" data-target="#logoutModal">
+                <a class="dropdown-item" href="#" id="logoutButtonFromModal" data-toggle="modal" data-target="#logoutModal">
                     <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
                     Logout
                 </a>
             </div>
         </li>
-        <% } %>
     </ul>
 </nav>
+
+<%# Pastikan tombol logout di sb_admin_logout_modal.ejs juga memanggil logoutUser() atau redirect ke /admin/logout %>
+<%# Atau, lebih sederhana, tombol logout di topbar bisa langsung memanggil logoutUser() %>
+<%# Jika menggunakan modal, pastikan tombol "Logout" di modal memiliki ID atau class yang bisa di-target oleh JS, atau link ke /admin/logout %>
+<%# Untuk sb_admin_logout_modal.ejs, link <a class="btn btn-primary" href="/admin/logout">Logout</a> sudah benar %>
+<%# Tombol logout di topbar sekarang menggunakan ID 'logoutButton' (jika mau langsung, bukan via modal) %>
+<%# Jika ingin tetap pakai modal, maka ID logoutButton di admin-auth.js harus merujuk ke tombol di dalam modal %>
+<%# Untuk contoh ini, kita asumsikan ada tombol logout global dengan ID logoutButton %>
+<%# Jika sb_admin_topbar.ejs punya tombol logout sendiri, beri ID unik atau class %>
+```
+**Catatan Penting untuk `sb_admin_topbar.ejs`:**
+* Saya mengganti `user.username` dan `user.role` dengan `<span>` yang memiliki class `loggedInUsername` dan `loggedInUserRole`. `admin-auth.js` akan mengisi ini dari `localStorage`.
+* Tombol logout di topbar (`id="logoutButtonFromModal"`) masih memicu modal. Tombol "Logout" di dalam `sb_admin_logout_modal.ejs` mengarah ke `/admin/logout` (GET request), yang di `server.js` akan redirect ke `/admin/login?success=...`. `admin-auth.js` juga memiliki listener untuk `logoutButton` yang akan melakukan `logoutUser()` (menghapus localStorage dan redirect). Pilih salah satu mekanisme logout yang konsisten. Untuk kesederhanaan, membiarkan link di modal mengarah ke `/admin/logout` (GET) sudah cukup, dan `admin-auth.js` akan menangani penghapusan `localStorage` saat halaman login dimuat (via `protectPageClientSide`).
+
+---
+**Langkah Berikutnya:**
+1.  Implementasikan perubahan di atas.
+2.  Pastikan semua endpoint API yang perlu dilindungi (misalnya, untuk membuat voucher, generate kode cash) di file route masing-masing (seperti `voucherRoutes.js`) menggunakan middleware `authenticateTokenApi` dan `authorizeRole`.
+3.  Untuk setiap halaman admin (misalnya `admin-vouchers.ejs`), JavaScript di halaman tersebut perlu menggunakan `fetchWithAuth` untuk mengambil data dari API backend yang dilindungi.
+
+Ini adalah perubahan yang cukup besar. Lakukan satu per satu dan uji setiap bagi
