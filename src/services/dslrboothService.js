@@ -82,6 +82,48 @@ async function ensureDslrBoothActive() {
   });
 }
 
+// FUNGSI BARU untuk memfokuskan aplikasi payment Electron
+async function focusPaymentApplication(windowTitle) {
+    console.log(`ELECTRON_APP_SERVICE: Meminta fokus untuk jendela dengan judul hint: "${windowTitle}"`);
+    const autoHotkeyExePath = config.autoHotkey?.executablePath || "C:\\Program Files\\AutoHotkey\\AutoHotkey.exe"; // Ambil dari config atau default
+    let ahkScriptPathFocusPayment;
+
+    if (app.isPackaged) {
+        // Saat di-package, 'scripts' ada di dalam folder resources
+        ahkScriptPathFocusPayment = path.join(process.resourcesPath, 'scripts', 'focus_payment_app.ahk');
+    } else {
+        // Saat development, 'scripts' ada di root proyek
+        ahkScriptPathFocusPayment = path.join(process.cwd(), 'scripts', 'focus_payment_app.ahk');
+    }
+    console.log(`ELECTRON_APP_SERVICE: Menggunakan path skrip AHK untuk fokus payment app: ${ahkScriptPathFocusPayment}`);
+
+    return new Promise((resolve, reject) => {
+        if (!fs.existsSync(autoHotkeyExePath)) {
+            return reject(new Error(`AutoHotkey.exe tidak ditemukan di ${autoHotkeyExePath}. Pastikan terinstal dan path benar.`));
+        }
+        if (!fs.existsSync(ahkScriptPathFocusPayment)) {
+            return reject(new Error(`Skrip focus_payment_app.ahk tidak ditemukan di ${ahkScriptPathFocusPayment}.`));
+        }
+
+        // Argumen untuk skrip AHK adalah path ke skrip itu sendiri, diikuti oleh argumen untuk skrip AHK-nya
+        const args = [ahkScriptPathFocusPayment, windowTitle];
+
+        execFile(autoHotkeyExePath, args, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`ELECTRON_APP_SERVICE: Error menjalankan skrip focus_payment_app.ahk:`, error);
+                return reject(error);
+            }
+            if (stderr) {
+                console.warn(`ELECTRON_APP_SERVICE: Stderr dari focus_payment_app.ahk: ${stderr}`);
+            }
+            console.log(`ELECTRON_APP_SERVICE: Stdout dari focus_payment_app.ahk: ${stdout}`);
+            resolve(stdout.trim() || "Skrip AHK untuk fokus aplikasi payment telah dieksekusi.");
+        });
+    });
+}
+
+
 module.exports = {
   ensureDslrBoothActive,
+  focusPaymentApplication,
 };

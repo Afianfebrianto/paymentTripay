@@ -183,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (typeof window.electronAPI.startDslrBooth === 'function') {
                             window.electronAPI.startDslrBooth();
                         } else { console.error("Fungsi startDslrBooth tidak tersedia.");}
-                        setTimeout(() => goToPage("index.html"), 3000);
+                        setTimeout(() => goToPage("index.html"), 4000);
                     } else if (statusResult.data.status === 'EXPIRED' || statusResult.data.status === 'FAILED') {
                         clearInterval(intervalId);
                         paymentStatusTextQRIS.textContent = `Pembayaran ${statusResult.data.status}`;
