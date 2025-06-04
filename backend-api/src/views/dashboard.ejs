@@ -1,78 +1,91 @@
 <%# backend-api/src/views/dashboard.ejs %>
 
-<%# Variabel ini akan digunakan oleh admin_layout.ejs %>
 <% locals.title = "Dashboard"; %>
 <% locals.pageHeading = "Dashboard Utama"; %>
 <% locals.currentPath = "/admin/dashboard"; %>
 
+<!-- Content Row untuk Statistik -->
 <div class="row">
+
+    <!-- Card Kode Cash Pending -->
     <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Kode Cash Pending</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="statPendingCashCodesCount">-</div>
+                        <div class="text-xs text-gray-600">Total Nilai: <span id="statPendingCashCodesValue">-</span></div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-hourglass-half fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+            <a href="/admin/pending-cash-codes" class="stretched-link"></a>
         </div>
+    </div>
+
+    <!-- Card Voucher Aktif -->
     <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Voucher Aktif</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="statActiveVouchersCount">-</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-tags fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+             <a href="/admin/vouchers" class="stretched-link"></a>
         </div>
+    </div>
+
+    <!-- Card Transaksi Hari Ini -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Transaksi Hari Ini</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="statTransactionsTodayCount">-</div>
+                        <div class="text-xs text-gray-600">Total Pemasukan: <span id="statTransactionsTodayRevenue">-</span></div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar-day fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+            <a href="/admin/transactions" class="stretched-link"></a>
+        </div>
+    </div>
+
+    <!-- Tambahkan card lain jika perlu -->
+
 </div>
+<!-- /.row -->
 
 <div class="row">
     <div class="col-lg-12">
         <p>Selamat datang di panel admin Photobooth! Gunakan menu di samping untuk navigasi dan mengelola aplikasi.</p>
-    </div>
-</div>
-
-<hr class="my-4"> <%# Pemisah %>
-
-<div class="row">
-    <div class="col-lg-12">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Informasi Debug Cookie (dari Server)</h6>
-            </div>
-            <div class="card-body">
-                <p>Klik tombol di bawah untuk meminta server menampilkan cookie yang diterimanya untuk sesi ini.</p>
-                <button id="checkServerCookiesButton" class="btn btn-warning">Cek Cookie yang Diterima Server</button>
-                <div id="serverCookieInfo" class="mt-3" style="white-space: pre-wrap; background-color: #f8f9fc; border: 1px solid #e3e6f0; padding: 15px; border-radius: .35rem; display: none; max-height: 400px; overflow-y: auto;">
-                    <p>Memuat...</p>
-                </div>
-            </div>
+        <!-- Tombol Aksi Cepat -->
+        <div class="mt-4">
+            <a href="/admin/cash-codes/generate" class="btn btn-lg btn-primary mr-2 mb-2"><i class="fas fa-cash-register"></i> Generate Kode Cash</a>
+            <a href="/admin/vouchers" class="btn btn-lg btn-info mr-2 mb-2"><i class="fas fa-tags"></i> Manajemen Voucher</a>
+            <a href="/admin/transactions" class="btn btn-lg btn-secondary mb-2"><i class="fas fa-history"></i> Lihat Transaksi</a>
         </div>
     </div>
 </div>
 
-<%# Menambahkan skrip untuk tombol debug ke dalam blok page_custom_scripts %>
+<%# Skrip khusus untuk halaman dashboard %>
 <%
-let existingScripts = locals.page_custom_scripts || "";
-locals.page_custom_scripts = existingScripts + `
-<script>
-    // Pastikan DOM sudah siap sebelum memasang listener
-    document.addEventListener('DOMContentLoaded', () => {
-        const checkServerCookiesButton = document.getElementById('checkServerCookiesButton');
-        const serverCookieInfoDiv = document.getElementById('serverCookieInfo');
-
-        console.log('DEBUG: Tombol Cek Cookie ditemukan?', checkServerCookiesButton); // Tambahkan log ini
-        console.log('DEBUG: Div Info Cookie ditemukan?', serverCookieInfoDiv); // Tambahkan log ini
-
-        if (checkServerCookiesButton && serverCookieInfoDiv) { // Tambahkan pengecekan null
-            checkServerCookiesButton.addEventListener('click', async () => {
-                console.log('DEBUG: Tombol Cek Cookie DIKLIK!'); // Tambahkan log ini
-                serverCookieInfoDiv.style.display = 'block';
-                serverCookieInfoDiv.textContent = 'Meminta data ke server...';
-                try {
-                    // ... (sisa kode fetch seperti sebelumnya) ...
-                    const response = await fetch('/api/debug/check-cookies', { /* ... */ });
-                    const data = await response.json();
-                    console.log('DEBUG: Respons dari /api/debug/check-cookies:', data); // Tambahkan log ini
-                    if (response.ok) {
-                        serverCookieInfoDiv.textContent = JSON.stringify(data, null, 2);
-                    } else {
-                        // ... (error handling)
-                    }
-                } catch (error) {
-                    // ... (error handling)
-                }
-            });
-        } else {
-            console.error('DEBUG: Tombol atau Div Info Cookie tidak ditemukan di DOM.');
-        }
-    });
-</script>
+locals.page_custom_scripts = `
+    <script src="/js/admin-dashboard.js"></script> 
 `;
 %>

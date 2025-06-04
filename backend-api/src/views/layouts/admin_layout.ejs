@@ -64,6 +64,10 @@
 
 <% if (typeof page_custom_scripts !== 'undefined' && page_custom_scripts) { %>
     <%- page_custom_scripts %>   <% } %>
+
+    <% if (typeof page_custom_scripts !== 'undefined') { %>
+    <%- page_custom_scripts %>
+<% } %>
     
     <script src="/js/admin-auth.js"></script> 
 </body>

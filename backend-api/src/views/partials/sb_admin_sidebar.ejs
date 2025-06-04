@@ -28,6 +28,13 @@
             <span>Generate Kode Cash</span></a>
     </li>
 
+     <!-- Nav Item - Manajemen Kode Cash Belum Terpakai (BARU) -->
+    <li class="nav-item <%= (currentPath === '/admin/pending-cash-codes') ? 'active' : '' %>">
+        <a class="nav-link" href="/admin/pending-cash-codes">
+            <i class="fas fa-fw fa-hourglass-half"></i>
+            <span>Kode Cash Pending</span></a>
+    </li>
+
     <li class="nav-item <%= (currentPath === '/admin/vouchers') ? 'active' : '' %>">
         <a class="nav-link" href="/admin/vouchers">
             <i class="fas fa-fw fa-tags"></i>
@@ -38,12 +45,6 @@
         <a class="nav-link" href="/admin/transactions">
             <i class="fas fa-fw fa-history"></i>
             <span>Daftar Transaksi</span></a>
-    </li>
-    
-    <li class="nav-item <%= (currentPath === '/admin/reports') ? 'active' : '' %>">
-        <a class="nav-link" href="/admin/reports">
-            <i class="fas fa-fw fa-chart-area"></i>
-            <span>Laporan</span></a>
     </li>
 
     <hr class="sidebar-divider">

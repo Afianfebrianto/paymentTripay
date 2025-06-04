@@ -2,6 +2,8 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const axios = require('axios'); // Pastikan sudah diinstal di proyek Electron
+const http = require('http'); // Modul HTTP bawaan Node.js
+const { URLSearchParams } = require('url');
 
 // Asumsikan kamu punya service ini di proyek Electron-mu
 // Sesuaikan path jika perlu (misalnya, jika main.js ada di root, path ke src/)
@@ -12,6 +14,49 @@ const BACKEND_API_URL_ELECTRON = 'http://localhost:4000'; // URL Backend API lok
 
 let mainWindow;
 const pendingQrisTransactionsContext = {}; // Simpan konteks pembayaran QRIS
+function createHttpServerForDslrBoothTriggers() {
+    const triggerPort = 12346; // Pilih port yang unik
+    const server = http.createServer((req, res) => {
+        console.log(`MAIN_PROCESS: Menerima request trigger dari dslrBooth: ${req.url}`);
+        const urlParams = new URLSearchParams(req.url.split('?')[1]);
+        const eventType = urlParams.get('event_type');
+
+        if (eventType === 'session_end') {
+            console.log("MAIN_PROCESS: Event 'session_end' diterima dari dslrBooth!");
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                if (mainWindow.isMinimized()) {
+                    mainWindow.restore();
+                }
+                mainWindow.show(); // Pastikan terlihat
+                mainWindow.focus(); // Bawa ke depan
+                // Untuk memaksa lebih kuat (kadang diperlukan di Windows):
+                // mainWindow.setAlwaysOnTop(true, "screen-saver");
+                // setTimeout(() => {
+                //     if (mainWindow && !mainWindow.isDestroyed()) {
+                //         mainWindow.setAlwaysOnTop(false);
+                //     }
+                // }, 1000); // Nonaktifkan always on top setelah 1 detik
+                console.log("MAIN_PROCESS: Mencoba memfokuskan jendela aplikasi payment.");
+            } else {
+                console.log("MAIN_PROCESS: mainWindow tidak ada atau sudah dihancurkan.");
+            }
+            res.writeHead(200, { 'Content-Type': 'text/plain' });
+            res.end('Event session_end diterima oleh Electron App.');
+        } else {
+            res.writeHead(200, { 'Content-Type': 'text/plain' });
+            res.end(`Event ${eventType} diterima.`);
+        }
+    });
+
+    server.listen(triggerPort, '127.0.0.1', () => {
+        console.log(`MAIN_PROCESS: Server HTTP untuk trigger dslrBooth berjalan di http://127.0.0.1:${triggerPort}`);
+    });
+
+    server.on('error', (err) => {
+        console.error('MAIN_PROCESS: Error pada server HTTP trigger:', err);
+        // Mungkin port sudah dipakai, tambahkan notifikasi ke pengguna jika perlu
+    });
+}
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -34,6 +79,7 @@ function createWindow() {
     }
 
     mainWindow.on('closed', () => {
+        console.log("MAIN_PROCESS: Jendela utama ditutup.");
         mainWindow = null;
     });
 }
@@ -43,6 +89,7 @@ app.whenReady().then(() => {
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
+    createHttpServerForDslrBoothTriggers();
 });
 
 app.on('window-all-closed', () => {

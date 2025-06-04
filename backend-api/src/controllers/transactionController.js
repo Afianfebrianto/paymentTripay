@@ -1,23 +1,164 @@
 // backend-api/src/controllers/transactionController.js
 const db = require('../db');
+const ExcelJS = require('exceljs');
 
-// Mendapatkan Semua Transaksi (untuk Web Admin)
-exports.getAllTransactions = async (req, res) => {
-    // Tambahkan paginasi dan filter jika perlu
+// Fungsi untuk memformat tanggal (bisa juga diletakkan di utils jika dipakai di banyak tempat)
+function formatDateForDisplay(dateString) {
+    if (!dateString) return '-';
     try {
-        const { rows } = await db.query(
-            `SELECT t.*, v.code as voucher_code_value, cpc.code as cash_code_value
-             FROM transactions t
-             LEFT JOIN vouchers v ON t.voucher_id = v.id
-             LEFT JOIN cash_payment_codes cpc ON t.cash_payment_code_id = cpc.id
-             ORDER BY t.created_at DESC`
-        );
+        const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+        return new Date(dateString).toLocaleDateString('id-ID', options);
+    } catch (e) {
+        return dateString; // Kembalikan string asli jika tidak valid
+    }
+}
+
+
+// Mendapatkan Semua Transaksi (dengan filter bulan dan tahun)
+exports.getAllTransactions = async (req, res) => {
+    const { month, year } = req.query; // Ambil dari query string (e.g., /api/transactions?year=2024&month=6)
+    console.log(`TRANSACTION_CONTROLLER: getAllTransactions dipanggil. Filter: Tahun=${year}, Bulan=${month}`);
+
+    let query = `
+        SELECT t.id, t.created_at, t.paid_at, t.payment_method, t.status, 
+               t.electron_merchant_ref, t.tripay_reference, t.customer_name,
+               t.base_amount, t.discount_applied, t.final_amount, 
+               v.code as voucher_code_value, 
+               cpc.code as cash_code_value,
+               t.transaction_notes
+        FROM transactions t
+        LEFT JOIN vouchers v ON t.voucher_id = v.id
+        LEFT JOIN cash_payment_codes cpc ON t.cash_payment_code_id = cpc.id
+    `;
+    const queryParams = [];
+    let whereClauseAdded = false;
+
+    if (year) {
+        query += ` WHERE EXTRACT(YEAR FROM t.created_at) = $${queryParams.length + 1}`;
+        queryParams.push(parseInt(year));
+        whereClauseAdded = true;
+    }
+    if (month) {
+        query += whereClauseAdded ? ` AND EXTRACT(MONTH FROM t.created_at) = $${queryParams.length + 1}` : ` WHERE EXTRACT(MONTH FROM t.created_at) = $${queryParams.length + 1}`;
+        queryParams.push(parseInt(month));
+    }
+
+    query += ' ORDER BY t.created_at DESC';
+
+    try {
+        console.log("TRANSACTION_CONTROLLER: Query getAllTransactions:", query, "Params:", queryParams);
+        const { rows } = await db.query(query, queryParams);
         res.json({ success: true, data: rows });
     } catch (error) {
         console.error('Error mendapatkan semua transaksi:', error);
         res.status(500).json({ success: false, message: 'Gagal mendapatkan data transaksi.' });
     }
 };
+
+// Export Transaksi ke Excel
+exports.exportTransactionsToExcel = async (req, res) => {
+    const { month, year } = req.query;
+    console.log(`TRANSACTION_CONTROLLER: exportTransactionsToExcel dipanggil. Filter: Tahun=${year}, Bulan=${month}`);
+
+    let query = `
+        SELECT t.id, t.created_at, t.paid_at, t.payment_method, t.status, 
+               t.electron_merchant_ref, t.tripay_reference, t.customer_name,
+               t.base_amount, t.discount_applied, t.final_amount, 
+               v.code as voucher_code_value, 
+               cpc.code as cash_code_value,
+               t.transaction_notes
+        FROM transactions t
+        LEFT JOIN vouchers v ON t.voucher_id = v.id
+        LEFT JOIN cash_payment_codes cpc ON t.cash_payment_code_id = cpc.id
+    `;
+    const queryParams = [];
+    let whereClauseAdded = false;
+
+    if (year) {
+        query += ` WHERE EXTRACT(YEAR FROM t.created_at) = $${queryParams.length + 1}`;
+        queryParams.push(parseInt(year));
+        whereClauseAdded = true;
+    }
+    if (month) {
+        query += whereClauseAdded ? ` AND EXTRACT(MONTH FROM t.created_at) = $${queryParams.length + 1}` : ` WHERE EXTRACT(MONTH FROM t.created_at) = $${queryParams.length + 1}`;
+        queryParams.push(parseInt(month));
+    }
+    query += ' ORDER BY t.created_at DESC';
+
+    try {
+        const { rows: transactions } = await db.query(query, queryParams);
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Transaksi');
+
+        // Definisikan header kolom
+        worksheet.columns = [
+            { header: 'ID Transaksi', key: 'id', width: 15 },
+            { header: 'Tgl. Dibuat', key: 'created_at', width: 25 },
+            { header: 'Tgl. Bayar', key: 'paid_at', width: 25 },
+            { header: 'Metode', key: 'payment_method', width: 15 },
+            { header: 'Status', key: 'status', width: 15 },
+            { header: 'Ref. Internal', key: 'electron_merchant_ref', width: 25 },
+            { header: 'Ref. Eksternal', key: 'tripay_reference', width: 25 },
+            { header: 'Nama Pelanggan', key: 'customer_name', width: 25 },
+            { header: 'Harga Asli (Rp)', key: 'base_amount', width: 20, style: { numFmt: '#,##0' } },
+            { header: 'Diskon (Rp)', key: 'discount_applied', width: 15, style: { numFmt: '#,##0' } },
+            { header: 'Total Bayar (Rp)', key: 'final_amount', width: 20, style: { numFmt: '#,##0' } },
+            { header: 'Voucher Digunakan', key: 'voucher_code_value', width: 20 },
+            { header: 'Kode Cash Digunakan', key: 'cash_code_value', width: 20 },
+            { header: 'Catatan', key: 'transaction_notes', width: 30 }
+        ];
+
+        // Tambahkan gaya pada header
+        worksheet.getRow(1).font = { bold: true, size: 12 };
+        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+        worksheet.getRow(1).fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFD3D3D3' } // Warna abu-abu muda
+        };
+
+
+        // Tambahkan data baris
+        transactions.forEach(tx => {
+            worksheet.addRow({
+                ...tx,
+                created_at: tx.created_at ? formatDateForDisplay(tx.created_at) : '-', // Format tanggal
+                paid_at: tx.paid_at ? formatDateForDisplay(tx.paid_at) : '-',
+                base_amount: tx.base_amount ? parseFloat(tx.base_amount) : 0,
+                discount_applied: tx.discount_applied ? parseFloat(tx.discount_applied) : 0,
+                final_amount: tx.final_amount ? parseFloat(tx.final_amount) : 0,
+            });
+        });
+        
+        // Atur border untuk semua sel yang terisi
+        worksheet.eachRow({ includeEmpty: false }, function(row, rowNumber) {
+            row.eachCell({ includeEmpty: true }, function(cell, colNumber) {
+                cell.border = {
+                    top: { style: 'thin' },
+                    left: { style: 'thin' },
+                    bottom: { style: 'thin' },
+                    right: { style: 'thin' }
+                };
+            });
+        });
+
+
+        // Set header untuk respons download
+        const filename = `Laporan_Transaksi_${year || 'SemuaTahun'}_${month || 'SemuaBulan'}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+
+        await workbook.xlsx.write(res);
+        res.end();
+        console.log(`TRANSACTION_CONTROLLER: File Excel ${filename} berhasil dibuat dan dikirim.`);
+
+    } catch (error) {
+        console.error('Error mengekspor transaksi ke Excel:', error);
+        res.status(500).json({ success: false, message: 'Gagal mengekspor data transaksi.' });
+    }
+};
+
 
 // Fungsi untuk mencatat transaksi QRIS (dipanggil oleh callback TriPay atau setelah polling sukses)
 // Ini contoh, logika detailnya akan bergantung pada data dari TriPay

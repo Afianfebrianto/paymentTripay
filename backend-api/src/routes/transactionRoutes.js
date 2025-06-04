@@ -13,5 +13,8 @@ router.post('/tripay-callback', transactionController.tripayCallbackHandler);
 
 router.post('/notify-qris-paid', transactionController.notifyQrisPaidByElectron);
 
+// ENDPOINT BARU: Untuk Web Admin mengekspor transaksi ke Excel
+router.get('/export', authenticateTokenApi, authorizeRole(['admin', 'kasir']), transactionController.exportTransactionsToExcel);
+
 
 module.exports = router;
