@@ -1,9 +1,9 @@
-// main.js (Electron App)
+// main.js (Electron App - Gabungan Lengkap)
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-const axios = require('axios'); // Pastikan sudah diinstal di proyek Electron
 const http = require('http'); // Modul HTTP bawaan Node.js
-const { URLSearchParams } = require('url');
+const { URLSearchParams, URL } = require('url'); // URLSearchParams dan URL untuk parsing
+const axios = require('axios'); // Pastikan sudah diinstal di proyek Electron: npm install axios
 
 // Asumsikan kamu punya service ini di proyek Electron-mu
 // Sesuaikan path jika perlu (misalnya, jika main.js ada di root, path ke src/)
@@ -12,51 +12,8 @@ const dslrboothService = require('./src/services/dslrboothService');
 
 const BACKEND_API_URL_ELECTRON = 'http://localhost:4000'; // URL Backend API lokal kamu
 
-let mainWindow;
+let mainWindow; // Variabel untuk menyimpan instance jendela utama
 const pendingQrisTransactionsContext = {}; // Simpan konteks pembayaran QRIS
-function createHttpServerForDslrBoothTriggers() {
-    const triggerPort = 12346; // Pilih port yang unik
-    const server = http.createServer((req, res) => {
-        console.log(`MAIN_PROCESS: Menerima request trigger dari dslrBooth: ${req.url}`);
-        const urlParams = new URLSearchParams(req.url.split('?')[1]);
-        const eventType = urlParams.get('event_type');
-
-        if (eventType === 'session_end') {
-            console.log("MAIN_PROCESS: Event 'session_end' diterima dari dslrBooth!");
-            if (mainWindow && !mainWindow.isDestroyed()) {
-                if (mainWindow.isMinimized()) {
-                    mainWindow.restore();
-                }
-                mainWindow.show(); // Pastikan terlihat
-                mainWindow.focus(); // Bawa ke depan
-                // Untuk memaksa lebih kuat (kadang diperlukan di Windows):
-                // mainWindow.setAlwaysOnTop(true, "screen-saver");
-                // setTimeout(() => {
-                //     if (mainWindow && !mainWindow.isDestroyed()) {
-                //         mainWindow.setAlwaysOnTop(false);
-                //     }
-                // }, 1000); // Nonaktifkan always on top setelah 1 detik
-                console.log("MAIN_PROCESS: Mencoba memfokuskan jendela aplikasi payment.");
-            } else {
-                console.log("MAIN_PROCESS: mainWindow tidak ada atau sudah dihancurkan.");
-            }
-            res.writeHead(200, { 'Content-Type': 'text/plain' });
-            res.end('Event session_end diterima oleh Electron App.');
-        } else {
-            res.writeHead(200, { 'Content-Type': 'text/plain' });
-            res.end(`Event ${eventType} diterima.`);
-        }
-    });
-
-    server.listen(triggerPort, '127.0.0.1', () => {
-        console.log(`MAIN_PROCESS: Server HTTP untuk trigger dslrBooth berjalan di http://127.0.0.1:${triggerPort}`);
-    });
-
-    server.on('error', (err) => {
-        console.error('MAIN_PROCESS: Error pada server HTTP trigger:', err);
-        // Mungkin port sudah dipakai, tambahkan notifikasi ke pengguna jika perlu
-    });
-}
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -82,18 +39,124 @@ function createWindow() {
         console.log("MAIN_PROCESS: Jendela utama ditutup.");
         mainWindow = null;
     });
+
+    mainWindow.on('focus', () => {
+        console.log("MAIN_PROCESS: Jendela utama mendapat fokus.");
+    });
+    mainWindow.on('blur', () => {
+        console.log("MAIN_PROCESS: Jendela utama kehilangan fokus.");
+    });
+
+    console.log("MAIN_PROCESS: createWindow() selesai, mainWindow dibuat.");
+}
+
+function createHttpServerForDslrBoothTriggers() {
+    const triggerPort = 12346; 
+    const triggerHost = '127.0.0.1';
+
+    const server = http.createServer((req, res) => {
+        let requestUrl;
+        try {
+            // Gunakan constructor URL untuk parsing yang lebih aman dan lengkap
+            requestUrl = new URL(req.url, `http://${req.headers.host || triggerHost}`);
+        } catch (e) {
+            console.warn(`MAIN_PROCESS (HTTP Trigger Server): URL tidak valid diterima: ${req.url}, Error: ${e.message}`);
+            res.writeHead(400, { 'Content-Type': 'text/plain' });
+            res.end('Request URL tidak valid.');
+            return;
+        }
+        
+        const eventType = requestUrl.searchParams.get('event_type');
+        const param1 = requestUrl.searchParams.get('param1');
+        const param2 = requestUrl.searchParams.get('param2');
+
+        console.log(`-----------------------------------------------------`);
+        console.log(`MAIN_PROCESS (HTTP Trigger Server): Menerima request: ${req.method} ${requestUrl.pathname}${requestUrl.search}`);
+        console.log(`MAIN_PROCESS (HTTP Trigger Server): Event Type  : ${eventType}`);
+        console.log(`MAIN_PROCESS (HTTP Trigger Server): Param1      : ${param1}`);
+        console.log(`MAIN_PROCESS (HTTP Trigger Server): Param2      : ${param2}`);
+
+        if (eventType === 'session_end') {
+            console.log("MAIN_PROCESS (HTTP Trigger Server): Event 'session_end' diterima!");
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                console.log("MAIN_PROCESS (HTTP Trigger Server): mainWindow ditemukan dan belum dihancurkan.");
+                if (mainWindow.isMinimized()) {
+                    console.log("MAIN_PROCESS (HTTP Trigger Server): Jendela utama sedang minimize, mencoba restore...");
+                    mainWindow.restore();
+                }
+                setTimeout(() => { // Jeda singkat sebelum show/focus
+                    if (mainWindow && !mainWindow.isDestroyed()) {
+                        console.log("MAIN_PROCESS (HTTP Trigger Server): Mencoba mainWindow.show() setelah jeda...");
+                        mainWindow.show(); 
+                        
+                        console.log("MAIN_PROCESS (HTTP Trigger Server): Mencoba mainWindow.focus() setelah jeda...");
+                        mainWindow.focus(); 
+
+                        // Teknik yang lebih memaksa (opsional)
+                        // console.log("MAIN_PROCESS (HTTP Trigger Server): Mencoba setAlwaysOnTop(true) sementara...");
+                        // mainWindow.setAlwaysOnTop(true); 
+                        // setTimeout(() => {
+                        //     if (mainWindow && !mainWindow.isDestroyed()) {
+                        //         mainWindow.setAlwaysOnTop(false);
+                        //         console.log("MAIN_PROCESS (HTTP Trigger Server): AlwaysOnTop dinonaktifkan.");
+                        //     }
+                        // }, 500);
+                        
+                        mainWindow.webContents.send('app:focus-requested', { event: 'session_end' });
+                        console.log("MAIN_PROCESS (HTTP Trigger Server): Perintah fokus ke jendela utama telah dikirim (setelah jeda).");
+                    }
+                }, 100); 
+            } else {
+                console.warn("MAIN_PROCESS (HTTP Trigger Server): Event 'session_end' diterima, TAPI mainWindow tidak ada atau sudah dihancurkan.");
+            }
+            res.writeHead(200, { 'Content-Type': 'text/plain' });
+            res.end('Event session_end diterima dan diproses oleh Aplikasi Payment Electron.');
+        } else if (eventType) {
+            console.log(`MAIN_PROCESS (HTTP Trigger Server): Event '${eventType}' diterima, tidak ada aksi spesifik.`);
+            res.writeHead(200, { 'Content-Type': 'text/plain' });
+            res.end(`Event ${eventType} diterima.`);
+        } else {
+            console.warn(`MAIN_PROCESS (HTTP Trigger Server): Menerima request tanpa event_type yang jelas: ${req.url}`);
+            res.writeHead(400, { 'Content-Type': 'text/plain' });
+            res.end('Request tidak valid: event_type tidak ditemukan.');
+        }
+        console.log(`-----------------------------------------------------`);
+    });
+
+    server.listen(triggerPort, triggerHost, () => {
+        console.log(`MAIN_PROCESS: Server HTTP untuk trigger dslrBooth berjalan di http://${triggerHost}:${triggerPort}`);
+        console.log(`MAIN_PROCESS: Pastikan URL Trigger di dslrBooth diatur ke: http://${triggerHost}:${triggerPort}/ (atau path spesifik jika ada)`);
+    });
+
+    server.on('error', (err) => {
+        console.error('MAIN_PROCESS: Error pada server HTTP trigger dslrBooth:', err);
+        if (err.code === 'EADDRINUSE') {
+            console.error(`MAIN_PROCESS: Port ${triggerPort} sudah digunakan.`);
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('app:error', { message: `Port ${triggerPort} untuk trigger dslrBooth sudah digunakan.` });
+            }
+        }
+    });
 }
 
 app.whenReady().then(() => {
+    console.log("MAIN_PROCESS: App ready.");
     createWindow();
+    createHttpServerForDslrBoothTriggers(); 
+
     app.on('activate', () => {
-        if (BrowserWindow.getAllWindows().length === 0) createWindow();
+        if (BrowserWindow.getAllWindows().length === 0) {
+            console.log("MAIN_PROCESS: App activate, membuat jendela baru.");
+            createWindow();
+        }
     });
-    createHttpServerForDslrBoothTriggers();
 });
 
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') app.quit();
+    console.log("MAIN_PROCESS: Semua jendela ditutup.");
+    if (process.platform !== 'darwin') {
+        app.quit();
+    }
 });
 
 // --- IPC Handlers ---
@@ -107,20 +170,17 @@ ipcMain.handle('qris:create-transaction', async (event, payloadFromRenderer) => 
             customer_name: payloadFromRenderer.customer_name,
             customer_email: payloadFromRenderer.customer_email,
             order_items: payloadFromRenderer.order_items,
-            // Tambahkan field lain yang dibutuhkan TriPay jika ada (misal, merchant_ref unik)
             merchant_ref: payloadFromRenderer.paymentContext?.electron_internal_ref || `QRIS-${Date.now()}`
         };
         const paymentContext = payloadFromRenderer.paymentContext;
 
-        // Panggil tripayService versi Electron untuk membuat transaksi ke API TriPay
         const result = await tripayService.createTransaction(tripayPayload); 
         console.log('MAIN_PROCESS: Hasil dari tripayService.createTransaction (Electron):', result);
         
         if (result.success && result.data && result.data.reference) {
-            // Simpan konteks pembayaran yang berisi base_amount, discount, voucher_code
             pendingQrisTransactionsContext[result.data.reference] = {
                 ...paymentContext,
-                electron_merchant_ref_sent_to_tripay: tripayPayload.merchant_ref // Simpan juga ref yang dikirim ke TriPay
+                electron_merchant_ref_sent_to_tripay: tripayPayload.merchant_ref 
             };
             console.log('MAIN_PROCESS: Konteks pembayaran disimpan untuk TriPay ref:', result.data.reference, pendingQrisTransactionsContext[result.data.reference]);
         }
@@ -132,13 +192,12 @@ ipcMain.handle('qris:create-transaction', async (event, payloadFromRenderer) => 
 });
 
 ipcMain.handle('qris:check-status', async (event, dataFromRenderer) => {
-    // dataFromRenderer sekarang bisa objek: { reference, electronRef }
     const reference = typeof dataFromRenderer === 'string' ? dataFromRenderer : dataFromRenderer.reference;
     const electronRefForNotification = typeof dataFromRenderer === 'string' ? null : dataFromRenderer.electronRef;
 
     console.log('MAIN_PROCESS: Menerima permintaan checkQrisStatus untuk TriPay reference:', reference);
     try {
-        const result = await tripayService.checkTransactionStatus(reference); // Ke API TriPay
+        const result = await tripayService.checkTransactionStatus(reference);
         console.log('MAIN_PROCESS: Hasil dari tripayService.checkTransactionStatus (Electron):', result);
 
         if (result.success && result.data && result.data.status === 'PAID') {
@@ -153,7 +212,7 @@ ipcMain.handle('qris:check-status', async (event, dataFromRenderer) => {
                     tripay_reference: result.data.reference,
                     electron_merchant_ref: electronRefForNotification || result.data.merchant_ref || `EL-${result.data.reference}`,
                     final_amount: result.data.amount,
-                    base_amount: result.data.amount, // Fallback jika tidak ada info diskon
+                    base_amount: result.data.amount,
                     discount_applied: 0,
                     voucher_code_used: null,
                     customer_name: result.data.customer_name,
@@ -191,7 +250,7 @@ ipcMain.handle('qris:check-status', async (event, dataFromRenderer) => {
             }
             
             if (paymentContext) {
-                delete pendingQrisTransactionsContext[reference]; // Hapus konteks setelah digunakan
+                delete pendingQrisTransactionsContext[reference];
                 console.log("MAIN_PROCESS: Konteks untuk ref", reference, "dihapus.");
             }
         }
@@ -205,7 +264,7 @@ ipcMain.handle('qris:check-status', async (event, dataFromRenderer) => {
 ipcMain.on('dslrbooth:start-session', async () => {
     console.log('MAIN_PROCESS: Menerima permintaan startDslrBooth.');
     try {
-        const message = await dslrboothService.ensureDslrBoothActive();
+        const message = await dslrboothService.ensureDslrBoothActive(); // Menggunakan fungsi yang sudah ada
         console.log('MAIN_PROCESS: Pesan dari dslrboothService:', message);
         if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('dslrbooth:status-update', { success: true, message });
