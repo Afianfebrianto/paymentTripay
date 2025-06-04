@@ -1,66 +1,48 @@
 <%# backend-api/src/views/admin-generate-cash-code.ejs %>
+
 <% locals.title = "Generate Kode Cash"; %>
 <% locals.pageHeading = "Generate Kode Pembayaran Cash"; %>
 <% locals.currentPath = "/admin/cash-codes/generate"; %>
 
-<p>Formulir untuk generate kode pembayaran cash akan ada di sini.</p>
-<div class="card shadow mb-4">
-    <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">Buat Kode Pembayaran Cash Baru</h6>
-    </div>
-    <div class="card-body">
-        <form id="generateCashCodeForm">
-            <div class="form-group">
-                <label for="cashAmount">Jumlah Pembayaran (Rp):</label>
-                <input type="number" class="form-control" id="cashAmount" name="cashAmount" required min="1000">
+<div class="row">
+    <div class="col-lg-8 col-md-10 mx-auto">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Buat Kode Pembayaran Cash Baru</h6>
             </div>
-            <button type="submit" class="btn btn-primary">Generate Kode</button>
-        </form>
-        <div id="generatedCodeResult" class="mt-3" style="display:none;">
-            <h4>Kode Berhasil Dibuat:</h4>
-            <p>Kode: <strong id="displayGeneratedCode"></strong></p>
-            <p>Jumlah: <strong id="displayGeneratedAmount"></strong></p>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    Harga Sesi Tetap: <strong>Rp <span id="fixedPriceDisplay">30,000</span></strong>
+                </div>
+                <form id="generateCashCodeForm">
+                    <div class="form-group">
+                        <label for="cashVoucherCode">Kode Voucher (Opsional):</label>
+                        <input type="text" class="form-control" id="cashVoucherCode" name="voucher_code" placeholder="Masukkan kode voucher jika ada">
+                        <small id="voucherValidationMessage" class="form-text"></small>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-block" id="generateCodeButton">
+                        <i class="fas fa-cogs"></i> Generate Kode Pembayaran
+                    </button>
+                </form>
+
+                <div id="generatedCodeResult" class="mt-4 alert alert-success" style="display:none;">
+                    <h4>Kode Pembayaran Berhasil Dibuat!</h4>
+                    <p class="mb-1">Kode: <strong id="displayGeneratedCode" style="font-size: 1.5em; letter-spacing: 1px;"></strong></p>
+                    <p class="mb-1">Harga Awal: <span id="displayBaseAmountResult"></span></p>
+                    <p class="mb-1" id="discountInfoResult" style="display:none;">Diskon Diterapkan: <span id="displayDiscountAppliedResult"></span> (<span id="displayVoucherMessageResult"></span>)</p>
+                    <p class="font-weight-bold">Jumlah yang Harus Dibayar Pelanggan: <strong id="displayFinalAmountResult" style="font-size: 1.2em;"></strong></p>
+                    <p class="mt-2"><small>Kode ini berlaku selama 24 jam.</small></p>
+                </div>
+                <div id="generateError" class="alert alert-danger mt-3" style="display:none;"></div>
+            </div>
         </div>
-        <div id="generateError" class="text-danger mt-3" style="display:none;"></div>
     </div>
 </div>
-<% locals.page_custom_scripts = `
-    <script>
-        // Logika JS untuk handle form submit generate kode cash
-        document.getElementById('generateCashCodeForm').addEventListener('submit', async function(event) {
-            event.preventDefault();
-            const amount = document.getElementById('cashAmount').value;
-            const resultDiv = document.getElementById('generatedCodeResult');
-            const errorCode = document.getElementById('displayGeneratedCode');
-            const errorAmount = document.getElementById('displayGeneratedAmount');
-            const errorDiv = document.getElementById('generateError');
 
-            resultDiv.style.display = 'none';
-            errorDiv.style.display = 'none';
-
-            try {
-                const response = await fetch('/api/cash-codes/generate', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + localStorage.getItem('adminToken') // Kirim token
-                    },
-                    body: JSON.stringify({ amount: parseInt(amount) })
-                });
-                const data = await response.json();
-                if (data.success) {
-                    errorCode.textContent = data.code;
-                    errorAmount.textContent = 'Rp ' + parseInt(data.amount).toLocaleString('id-ID');
-                    resultDiv.style.display = 'block';
-                    this.reset(); // Reset form
-                } else {
-                    errorDiv.textContent = data.message || 'Gagal generate kode.';
-                    errorDiv.style.display = 'block';
-                }
-            } catch (err) {
-                errorDiv.textContent = 'Terjadi kesalahan jaringan.';
-                errorDiv.style.display = 'block';
-            }
-        });
-    </script>
-` %>
+<%# Skrip khusus untuk halaman ini %>
+<%
+locals.page_custom_scripts = `
+    <script src="/js/admin-generate-cash-code.js"></script> 
+`;
+%>

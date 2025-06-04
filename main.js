@@ -1,266 +1,177 @@
-// main.js
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+// main.js (Electron App)
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const axios = require('axios'); // Pastikan sudah diinstal di proyek Electron
 
-const tripayService = require('./src/services/tripayService');
+// Asumsikan kamu punya service ini di proyek Electron-mu
+// Sesuaikan path jika perlu (misalnya, jika main.js ada di root, path ke src/)
+const tripayService = require('./src/services/tripayService'); 
 const dslrboothService = require('./src/services/dslrboothService');
-const { applyVoucher } = require('./src/utils/vouchers');
 
-let mainWindowInstance;
+const BACKEND_API_URL_ELECTRON = 'http://localhost:4000'; // URL Backend API lokal kamu
+
+let mainWindow;
+const pendingQrisTransactionsContext = {}; // Simpan konteks pembayaran QRIS
 
 function createWindow() {
-  const mainWindow = new BrowserWindow({
-    width: 1024, // Lebar awal jika tidak fullscreen
-    height: 768, // Tinggi awal jika tidak fullscreen
-    icon: path.join(__dirname, 'assets/icons/icon.png'), // Ganti dengan path ikonmu
-    fullscreen: true, // Membuat aplikasi langsung fullscreen
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      devTools: !app.isPackaged,
+    mainWindow = new BrowserWindow({
+        width: 1024,
+        height: 768,
+        fullscreen: true,
+        icon: path.join(__dirname, 'assets', 'icons', 'icon.png'), // Sesuaikan path ikon
+        webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
+            contextIsolation: true,
+            nodeIntegration: false,
+            // devTools: !app.isPackaged // Buka devtools saat development
+        }
+    });
+
+    mainWindow.loadFile('index.html'); // Halaman awalmu
+
+    if (!app.isPackaged) {
+        mainWindow.webContents.openDevTools();
     }
-  });
 
-  mainWindow.loadFile('index.html');
-
-  // Jika ingin tombol untuk keluar dari fullscreen (opsional)
-  // mainWindow.setFullScreenable(true); // Defaultnya true
-  // Kamu bisa menambahkan menu atau shortcut untuk toggle fullscreen jika perlu
-  // mainWindow.on('leave-full-screen', () => { console.log("Left fullscreen"); });
-
-  if (!app.isPackaged) {
-    mainWindow.webContents.openDevTools();
-  }
-
-  mainWindowInstance = mainWindow;
-
-  mainWindow.on('closed', () => {
-    mainWindowInstance = null;
-  });
-
-  return mainWindow;
+    mainWindow.on('closed', () => {
+        mainWindow = null;
+    });
 }
 
 app.whenReady().then(() => {
-  createWindow();
-  app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
+    createWindow();
+    app.on('activate', () => {
+        if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
 });
 
-app.on('window-all-closed', function () {
-  if (process.platform !== 'darwin') app.quit();
+app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') app.quit();
 });
 
-ipcMain.handle('tripay:createPayment', async (event, paymentDataFromRenderer) => {
-  if (!mainWindowInstance || mainWindowInstance.isDestroyed()) {
-    return { success: false, message: 'Kesalahan internal: Jendela utama tidak siap atau sudah ditutup.' };
-  }
+// --- IPC Handlers ---
 
-  console.log('Main: Menerima permintaan createPayment:', paymentDataFromRenderer);
-  const { base_amount, method, customer_name, customer_email, customer_phone, itemName, voucher_code } = paymentDataFromRenderer;
-  
-  let finalAmount = base_amount;
-  let voucherProsesResult = { isValid: false, finalAmount: base_amount, discountApplied: 0, message: "" };
-
-  if (voucher_code && voucher_code.trim() !== '') {
-    voucherProsesResult = applyVoucher(voucher_code, base_amount);
-    if (!voucherProsesResult.isValid) {
-      console.warn(`Main: Validasi voucher gagal: ${voucherProsesResult.message}`);
-      return { success: false, message: voucherProsesResult.message };
-    }
-    finalAmount = voucherProsesResult.finalAmount;
-    console.log(`Main: ${voucherProsesResult.message}. Harga setelah diskon: ${finalAmount}`);
-  }
-
-  if (finalAmount <= 0 && base_amount > 0) {
-    console.log('Main: Harga final adalah Rp 0 setelah diskon. Anggap pembayaran LUNAS secara virtual.');
-    const virtualReference = `VIRTUAL-${Date.now()}`;
-    const virtualPaymentData = {
-      reference: virtualReference,
-      merchant_ref: virtualReference,
-      status: 'PAID',
-      amount: 0,
-      payment_name: voucherProsesResult.message || 'Diskon Penuh',
-      customer_name: customer_name,
-    };
-
-    if (mainWindowInstance && !mainWindowInstance.isDestroyed()) {
-      mainWindowInstance.webContents.send('payment:statusUpdate', {
-        status: 'PAID',
-        data: virtualPaymentData,
-        reference: virtualReference,
-        message: voucherProsesResult.message || 'Pembayaran Lunas (Harga Rp 0)'
-      });
-    }
-
+ipcMain.handle('qris:create-transaction', async (event, payloadFromRenderer) => {
+    console.log('MAIN_PROCESS: Menerima permintaan createQrisTransaction:', payloadFromRenderer);
     try {
-      const launchMsg = await dslrboothService.ensureDslrBoothActive();
-      console.log('Main: DSLRBooth (virtual payment):', launchMsg);
-      if (mainWindowInstance && !mainWindowInstance.isDestroyed()) {
-        mainWindowInstance.webContents.send('dslrbooth:statusUpdate', { status: 'activated_or_launched', message: launchMsg });
-      }
-    } catch (dslrError) {
-      console.error('Main: Gagal DSLRBooth (virtual payment):', dslrError);
-      if (mainWindowInstance && !mainWindowInstance.isDestroyed()) {
-        mainWindowInstance.webContents.send('dslrbooth:statusUpdate', { status: 'error', message: dslrError.toString() });
-      }
-    }
-    // Kirim pesan voucher yang valid agar renderer bisa menampilkannya
-    return { success: true, data: virtualPaymentData, voucher_message: (voucherProsesResult.isValid && voucherProsesResult.discountApplied > 0 ? voucherProsesResult.message : null) };
-  }
-
-  const tripayPayload = {
-    amount: finalAmount,
-    method: method,
-    customer_name: customer_name,
-    customer_email: customer_email,
-    customer_phone: customer_phone,
-    itemName: itemName,
-    order_items: [{
-      name: itemName + (voucherProsesResult.isValid && voucherProsesResult.discountApplied > 0 ? ` (${voucherProsesResult.description})` : ''), // Gunakan description dari voucher
-      price: finalAmount,
-      quantity: 1,
-    }]
-  };
-
-  try {
-    const result = await tripayService.createTransaction(tripayPayload);
-    if (result.success && result.data && result.data.reference) {
-      console.log('Main: Transaksi TriPay berhasil dibuat, memulai polling untuk reference:', result.data.reference);
-      if (mainWindowInstance && !mainWindowInstance.isDestroyed()) {
-        // Kirim pesan deskripsi voucher jika valid dan ada diskon
-        const messageForPolling = (voucherProsesResult.isValid && voucherProsesResult.discountApplied > 0) ? voucherProsesResult.message : '';
-        startPaymentPolling(mainWindowInstance, result.data.reference, messageForPolling);
-      }
-    } else {
-      console.warn('Main: Gagal membuat transaksi TriPay atau data referensi tidak ada:', result.message);
-    }
-    return { ...result, voucher_message: (voucherProsesResult.isValid && voucherProsesResult.discountApplied > 0 ? voucherProsesResult.message : null) };
-  } catch (error) {
-    console.error('Main: Error saat memanggil tripayService.createTransaction:', error);
-    return { success: false, message: 'Terjadi kesalahan internal server: ' + error.message };
-  }
-});
-
-ipcMain.on('app:openExternalLink', (event, url) => {
-  try {
-    const parsedUrl = new URL(url);
-    if (['http:', 'https:'].includes(parsedUrl.protocol)) {
-      shell.openExternal(url);
-    } else { console.warn('Upaya membuka URL dengan protokol tidak valid:', url); }
-  } catch (e) { console.error('Gagal membuka link eksternal, URL tidak valid atau error:', url, e); }
-});
-
-async function startPaymentPolling(browserWindow, transactionReference, voucherAppliedMessage = '') {
-  if (!browserWindow || browserWindow.isDestroyed()) {
-    console.warn(`Main Polling: Dihentikan untuk ${transactionReference} karena jendela tidak valid/hancur.`);
-    return;
-  }
-
-  console.log(`Main Polling: Memulai untuk ${transactionReference}, pesan voucher: "${voucherAppliedMessage}"`);
-  let attempts = 0;
-  const maxAttempts = 120;
-  const interval = 5000;
-  let pollingTimeoutId = null;
-
-  function sendStatusUpdate(update) {
-    if (browserWindow && !browserWindow.isDestroyed()) {
-      browserWindow.webContents.send('payment:statusUpdate', update);
-    } else {
-      console.warn("Main Polling: Gagal mengirim status update, jendela tidak ada atau sudah dihancurkan.");
-      if (pollingTimeoutId) clearTimeout(pollingTimeoutId);
-    }
-  }
-
-  const poll = async () => {
-    if (browserWindow.isDestroyed()) {
-      console.warn(`Main Polling: Dihentikan (jendela hancur saat poll) untuk ${transactionReference}.`);
-      return;
-    }
-    if (attempts >= maxAttempts) {
-      console.log(`Main Polling: Dihentikan (max attempts) untuk ${transactionReference}.`);
-      sendStatusUpdate({
-        status: 'TIMEOUT',
-        message: 'Waktu tunggu pembayaran habis.',
-        reference: transactionReference
-      });
-      return;
-    }
-    attempts++;
-
-    try {
-      const statusResult = await tripayService.checkTransactionStatus(transactionReference);
-      console.log(`Main Polling: Attempt #${attempts} for ${transactionReference}: Status=${statusResult?.data?.status}, Success=${statusResult?.success}`);
-
-      if (statusResult && statusResult.success && statusResult.data) {
-        const paymentStatus = statusResult.data.status;
-        let finalMessage = statusResult.data.note || statusResult.message || '';
-        
-        if (paymentStatus === 'PAID') {
-            if (voucherAppliedMessage) { // Jika ada pesan voucher (berarti voucher valid diterapkan)
-                finalMessage = voucherAppliedMessage + (finalMessage ? ` (${finalMessage})` : '');
-            }
-            if (!finalMessage) { // Jika tetap kosong
-                finalMessage = 'Pembayaran LUNAS!';
-            }
-        }
-
-        const updateData = {
-          status: paymentStatus,
-          data: statusResult.data,
-          reference: transactionReference,
-          message: finalMessage
+        const tripayPayload = {
+            amount: payloadFromRenderer.amount,
+            method: payloadFromRenderer.method,
+            customer_name: payloadFromRenderer.customer_name,
+            customer_email: payloadFromRenderer.customer_email,
+            order_items: payloadFromRenderer.order_items,
+            // Tambahkan field lain yang dibutuhkan TriPay jika ada (misal, merchant_ref unik)
+            merchant_ref: payloadFromRenderer.paymentContext?.electron_internal_ref || `QRIS-${Date.now()}`
         };
-        sendStatusUpdate(updateData);
+        const paymentContext = payloadFromRenderer.paymentContext;
 
-        if (paymentStatus === 'PAID') {
-          console.log(`Main Polling: Pembayaran LUNAS untuk ${transactionReference}!`);
-          try {
-            const activeMsg = await dslrboothService.ensureDslrBoothActive();
-            console.log('Main Polling: DSLRBooth (PAID):', activeMsg);
-            if (browserWindow && !browserWindow.isDestroyed()) {
-              browserWindow.webContents.send('dslrbooth:statusUpdate', { status: 'activated_or_launched', message: activeMsg });
-            }
-          } catch (dslrError) {
-            console.error('Main Polling: Gagal DSLRBooth (PAID):', dslrError);
-            if (browserWindow && !browserWindow.isDestroyed()) {
-              browserWindow.webContents.send('dslrbooth:statusUpdate', { status: 'error', message: dslrError.toString() });
-            }
-          }
-          return; // Hentikan polling
-        } else if (paymentStatus === 'EXPIRED' || paymentStatus === 'FAILED') {
-          console.log(`Main Polling: Pembayaran ${paymentStatus} untuk ${transactionReference}. Polling dihentikan.`);
-          return; // Hentikan polling
+        // Panggil tripayService versi Electron untuk membuat transaksi ke API TriPay
+        const result = await tripayService.createTransaction(tripayPayload); 
+        console.log('MAIN_PROCESS: Hasil dari tripayService.createTransaction (Electron):', result);
+        
+        if (result.success && result.data && result.data.reference) {
+            // Simpan konteks pembayaran yang berisi base_amount, discount, voucher_code
+            pendingQrisTransactionsContext[result.data.reference] = {
+                ...paymentContext,
+                electron_merchant_ref_sent_to_tripay: tripayPayload.merchant_ref // Simpan juga ref yang dikirim ke TriPay
+            };
+            console.log('MAIN_PROCESS: Konteks pembayaran disimpan untuk TriPay ref:', result.data.reference, pendingQrisTransactionsContext[result.data.reference]);
         }
-      } else {
-        console.warn(`Main Polling: Gagal mendapatkan status valid untuk ${transactionReference}:`, statusResult.message || 'Respons tidak sukses atau data tidak ada.');
-        sendStatusUpdate({
-          status: 'POLLING_ERROR',
-          message: statusResult.message || 'Gagal mengecek status pembayaran (respons tidak valid).',
-          reference: transactionReference
-        });
-      }
+        return result;
     } catch (error) {
-      console.error(`Main Polling: Error saat polling untuk ${transactionReference}:`, error);
-      sendStatusUpdate({
-        status: 'POLLING_ERROR',
-        message: 'Terjadi kesalahan internal saat mengecek status: ' + error.message,
-        reference: transactionReference
-      });
+        console.error('MAIN_PROCESS: Error di createQrisTransaction handler:', error);
+        return { success: false, message: error.message || 'Gagal membuat transaksi di main process.' };
     }
+});
 
-    if (browserWindow && !browserWindow.isDestroyed()) {
-      pollingTimeoutId = setTimeout(poll, interval);
-    } else {
-        console.warn(`Main Polling: Dihentikan (jendela hancur sebelum timeout berikutnya) untuk ${transactionReference}.`);
+ipcMain.handle('qris:check-status', async (event, dataFromRenderer) => {
+    // dataFromRenderer sekarang bisa objek: { reference, electronRef }
+    const reference = typeof dataFromRenderer === 'string' ? dataFromRenderer : dataFromRenderer.reference;
+    const electronRefForNotification = typeof dataFromRenderer === 'string' ? null : dataFromRenderer.electronRef;
+
+    console.log('MAIN_PROCESS: Menerima permintaan checkQrisStatus untuk TriPay reference:', reference);
+    try {
+        const result = await tripayService.checkTransactionStatus(reference); // Ke API TriPay
+        console.log('MAIN_PROCESS: Hasil dari tripayService.checkTransactionStatus (Electron):', result);
+
+        if (result.success && result.data && result.data.status === 'PAID') {
+            console.log('MAIN_PROCESS: Status QRIS PAID terdeteksi. Memberitahu backend API lokal...');
+            
+            const paymentContext = pendingQrisTransactionsContext[reference];
+            let notificationPayload;
+
+            if (!paymentContext) {
+                console.warn(`MAIN_PROCESS: Konteks pembayaran untuk ref ${reference} tidak ditemukan! Mengirim data minimal ke backend.`);
+                notificationPayload = {
+                    tripay_reference: result.data.reference,
+                    electron_merchant_ref: electronRefForNotification || result.data.merchant_ref || `EL-${result.data.reference}`,
+                    final_amount: result.data.amount,
+                    base_amount: result.data.amount, // Fallback jika tidak ada info diskon
+                    discount_applied: 0,
+                    voucher_code_used: null,
+                    customer_name: result.data.customer_name,
+                    customer_email: result.data.customer_email,
+                    customer_phone: result.data.customer_phone,
+                    paid_at_timestamp: result.data.paid_at,
+                    notes: `Pembayaran QRIS via Electron. Konteks asli tidak ditemukan.`
+                };
+            } else {
+                notificationPayload = {
+                    tripay_reference: result.data.reference,
+                    electron_merchant_ref: paymentContext.electron_internal_ref || paymentContext.electron_merchant_ref_sent_to_tripay || result.data.merchant_ref,
+                    final_amount: result.data.amount,
+                    base_amount: paymentContext.base_amount_original,
+                    discount_applied: paymentContext.discount_applied_calculated,
+                    voucher_code_used: paymentContext.voucher_code_actually_used,
+                    customer_name: result.data.customer_name,
+                    customer_email: result.data.customer_email,
+                    customer_phone: result.data.customer_phone,
+                    paid_at_timestamp: result.data.paid_at,
+                    notes: `Pembayaran QRIS via Electron. Ref TriPay: ${result.data.reference}`
+                };
+            }
+
+            try {
+                console.log("MAIN_PROCESS: Mengirim notifikasi PAID ke backend API lokal:", notificationPayload);
+                const apiResponse = await axios.post(`${BACKEND_API_URL_ELECTRON}/api/transactions/notify-qris-paid`, notificationPayload);
+                console.log('MAIN_PROCESS: Respons dari backend API setelah notifikasi PAID:', apiResponse.data);
+                if (!apiResponse.data.success) {
+                    console.warn('MAIN_PROCESS: Backend API lokal merespons dengan gagal saat mencatat transaksi:', apiResponse.data.message);
+                }
+            } catch (apiError) {
+                console.error('MAIN_PROCESS: Gagal mengirim notifikasi PAID ke backend API lokal:', 
+                    apiError.response ? JSON.stringify(apiError.response.data, null, 2) : apiError.message);
+            }
+            
+            if (paymentContext) {
+                delete pendingQrisTransactionsContext[reference]; // Hapus konteks setelah digunakan
+                console.log("MAIN_PROCESS: Konteks untuk ref", reference, "dihapus.");
+            }
+        }
+        return result;
+    } catch (error) {
+        console.error('MAIN_PROCESS: Error di checkQrisStatus handler:', error);
+        return { success: false, message: error.message || 'Gagal mengecek status transaksi di main process.' };
     }
-  };
+});
 
-  if (browserWindow && !browserWindow.isDestroyed()) {
-    poll();
-  } else {
-    console.warn(`Main Polling: Gagal memulai, jendela tidak ada/hancur (untuk ${transactionReference}).`);
-  }
-}
+ipcMain.on('dslrbooth:start-session', async () => {
+    console.log('MAIN_PROCESS: Menerima permintaan startDslrBooth.');
+    try {
+        const message = await dslrboothService.ensureDslrBoothActive();
+        console.log('MAIN_PROCESS: Pesan dari dslrboothService:', message);
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('dslrbooth:status-update', { success: true, message });
+        }
+    } catch (error) {
+        console.error('MAIN_PROCESS: Error saat memulai DSLRBooth:', error);
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('dslrbooth:status-update', { success: false, message: error.message || error.toString() });
+        }
+    }
+});
+
+// Opsional: Jika perlu getElectronAppId dari preload.js
+// ipcMain.handle('app:get-id', async () => {
+//     return 'photobooth-electron-instance-01'; // Contoh ID
+// });

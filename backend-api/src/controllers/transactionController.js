@@ -90,6 +90,99 @@ exports.recordQrisTransaction = async (tripayData, electronRef = null) => {
     }
 };
 
+ // Fungsi untuk mencatat transaksi QRIS berdasarkan notifikasi dari Electron
+    exports.notifyQrisPaidByElectron = async (req, res) => {
+        const {
+             tripay_reference,
+        electron_merchant_ref,
+        final_amount,       // Ini adalah amount setelah diskon
+        base_amount,        // Ini adalah harga ASLI sebelum diskon
+        discount_applied,   // Ini adalah jumlah diskonnya
+        voucher_code_used,  // Kode voucher yang dipakai
+        customer_name,
+        customer_email,
+        customer_phone,
+        paid_at_timestamp,
+        notes
+        } = req.body;
+
+        console.log("TRANSACTION_CONTROLLER: Menerima notifikasi QRIS PAID dari Electron:", JSON.stringify(req.body, null, 2));
+
+        if (!tripay_reference || typeof final_amount === 'undefined') {
+            return res.status(400).json({ success: false, message: 'Data tidak lengkap: tripay_reference dan final_amount diperlukan.' });
+        }
+
+        const client = await db.pool.connect();
+        try {
+            await client.query('BEGIN');
+
+            // Cek apakah transaksi dengan tripay_reference ini sudah ada
+            const existingTx = await client.query('SELECT id FROM transactions WHERE tripay_reference = $1', [tripay_reference]);
+            if (existingTx.rows.length > 0) {
+                console.log(`TRANSACTION_CONTROLLER: Transaksi QRIS (via Electron) dengan TriPay Ref ${tripay_reference} sudah ada. ID: ${existingTx.rows[0].id}.`);
+                await client.query('ROLLBACK');
+                // Kirim respons sukses karena sudah tercatat, atau error jika ini tidak diharapkan
+                return res.status(200).json({ success: true, message: "Transaksi sudah tercatat sebelumnya.", transactionId: existingTx.rows[0].id });
+            }
+
+            let voucherId = null;
+            if (voucher_code_used && voucher_code_used.trim() !== '') {
+            const voucherRes = await client.query('SELECT id FROM vouchers WHERE UPPER(code) = UPPER($1)', [voucher_code_used]);
+            if (voucherRes.rows.length > 0) {
+                voucherId = voucherRes.rows[0].id;
+            } else {
+                console.warn(`TRANSACTION_CONTROLLER: Voucher code ${voucher_code_used} dari Electron tidak ditemukan di DB saat mencatat transaksi QRIS.`);
+                // Pertimbangkan apakah ini error atau boleh lanjut tanpa voucher_id
+            }
+        }
+            
+            const actualBaseAmount = parseFloat(base_amount);
+        const actualDiscountApplied = parseFloat(discount_applied) || 0;
+        const actualFinalAmount = parseFloat(final_amount);
+        const paidAtDate = paid_at_timestamp ? new Date(paid_at_timestamp * 1000) : new Date();
+
+
+            const queryText = `
+            INSERT INTO transactions 
+            (electron_merchant_ref, tripay_reference, payment_method, status, 
+             base_amount, discount_applied, final_amount, voucher_id, 
+             customer_name, customer_email, customer_phone, paid_at, transaction_notes)
+            VALUES ($1, $2, 'QRIS', 'PAID', $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            RETURNING id`;
+        const queryValues = [
+            electron_merchant_ref || `EL-${tripay_reference}`,
+            tripay_reference,
+            actualBaseAmount,       // Gunakan base_amount dari Electron
+            actualDiscountApplied,  // Gunakan discount_applied dari Electron
+            actualFinalAmount,      // Gunakan final_amount dari Electron
+            voucherId,              // Gunakan voucherId yang sudah dicari
+            customer_name || null,
+            customer_email || null,
+            customer_phone || null,
+            paidAtDate,
+            notes || null
+        ];
+
+            console.log("TRANSACTION_CONTROLLER: Query INSERT (Electron notify):", queryText);
+            console.log("TRANSACTION_CONTROLLER: Values INSERT (Electron notify):", queryValues);
+            
+            const { rows } = await client.query(queryText, queryValues);
+            
+            await client.query('COMMIT');
+            console.log(`TRANSACTION_CONTROLLER: Transaksi QRIS (via Electron) berhasil dicatat. ID DB: ${rows[0].id}, TriPay Ref: ${tripay_reference}`);
+            res.status(201).json({ success: true, message: "Transaksi QRIS berhasil dicatat oleh server.", transactionId: rows[0].id });
+
+        } catch (error) {
+            await client.query('ROLLBACK');
+            console.error('TRANSACTION_CONTROLLER: Error SQL saat mencatat transaksi QRIS dari Electron:', error);
+            res.status(500).json({ success: false, message: 'Gagal mencatat transaksi di server.', error: error.message });
+        } finally {
+            client.release();
+        }
+    };
+
+
+
 // Endpoint untuk callback dari TriPay (SANGAT PENTING DIAMANKAN)
 exports.tripayCallbackHandler = async (req, res) => {
     const callbackData = req.body;

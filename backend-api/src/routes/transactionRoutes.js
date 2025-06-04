@@ -11,5 +11,7 @@ router.get('/', authenticateTokenApi, authorizeRole(['admin', 'kasir']), transac
 // Idealnya, path ini acak dan sulit ditebak, dan ada validasi signature.
 router.post('/tripay-callback', transactionController.tripayCallbackHandler);
 
+router.post('/notify-qris-paid', transactionController.notifyQrisPaidByElectron);
+
 
 module.exports = router;
