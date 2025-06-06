@@ -1,32 +1,36 @@
 {
   "name": "payment-apps",
-   "productName": "Payment Apps Photobooth",
+  "productName": "Payment Apps Photobooth",
   "version": "1.0.0",
   "description": "Aplikasi Photobooth dengan sistem pembayaran.",
   "main": "main.js",
-
   "build": {
-  "extraResources": [
-    {
-      "from": "./scripts",
-      "to": "scripts",
-      "filter": ["**/*"]
-    }
-  ]
-},
+    "extraResources": [
+      {
+        "from": "./scripts",
+        "to": "scripts",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
+  },
   "scripts": {
     "start": "electron-forge start",
     "test": "echo \"Error: no test specified\" && exit 1",
     "package": "electron-forge package",
     "make": "electron-forge make"
   },
-  "keywords": ["photobooth", "payment", "electron"],
+  "keywords": [
+    "photobooth",
+    "payment",
+    "electron"
+  ],
   "author": {
     "name": "Nama Kamu atau Nama Perusahaanmu",
     "email": "email@kamu.com"
   },
   "license": "ISC",
-  "description": "Aplikasi Photobooth dengan sistem pembayaran.",
   "devDependencies": {
     "@electron-forge/cli": "^7.8.1",
     "@electron-forge/maker-deb": "^7.8.1",
@@ -40,6 +44,7 @@
   },
   "dependencies": {
     "axios": "^1.9.0",
-    "electron-squirrel-startup": "^1.0.1"
+    "electron-squirrel-startup": "^1.0.1",
+    "midtrans-client": "^1.4.3"
   }
 }

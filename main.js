@@ -1,47 +1,49 @@
-// main.js (Electron App - Gabungan Lengkap)
+// main.js (Electron App)
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const axios = require('axios'); // Pastikan sudah diinstal di proyek Electron
 const http = require('http'); // Modul HTTP bawaan Node.js
-const { URLSearchParams, URL } = require('url'); // URLSearchParams dan URL untuk parsing
-const axios = require('axios'); // Pastikan sudah diinstal di proyek Electron: npm install axios
+const { URL } = require('url'); // Untuk parsing URL trigger
 
 // Asumsikan kamu punya service ini di proyek Electron-mu
-// Sesuaikan path jika perlu (misalnya, jika main.js ada di root, path ke src/)
-const tripayService = require('./src/services/tripayService'); 
+// Sesuaikan path jika perlu
+const midtransService = require('./src/services/midtransService'); 
 const dslrboothService = require('./src/services/dslrboothService');
 
-const BACKEND_API_URL_ELECTRON = 'http://localhost:4000'; // URL Backend API lokal kamu
+// --- Konfigurasi ---
+const BACKEND_API_URL_ELECTRON = 'http://localhost:4000'; // URL Backend API lokalmu
+// PENTING: Ganti dengan kunci Midtrans-mu. Simpan di tempat yang lebih aman jika perlu.
+const MIDTRANS_SERVER_KEY_ELECTRON = "SB-Mid-server-jb5uDdLw3XTs5f89SMHv88jd"; 
+const MIDTRANS_IS_PRODUCTION_ELECTRON = false; // Set true untuk produksi
 
-let mainWindow; // Variabel untuk menyimpan instance jendela utama
+let mainWindow;
 const pendingQrisTransactionsContext = {}; // Simpan konteks pembayaran QRIS
 
 function createWindow() {
     mainWindow = new BrowserWindow({
-        width: 1024, // Lebar awal
-        height: 768, // Tinggi awal
-        fullscreen: true, // Langsung fullscreen
-        icon: path.join(__dirname, 'assets', 'icons', 'icon.png'), // Sesuaikan path ikon aplikasimu
+        width: 1024,
+        height: 768,
+        fullscreen: true,
+        icon: path.join(__dirname, 'assets', 'icons', 'icon.png'), // Sesuaikan path ikon
         title: "Selamat Datang di ShooteraSnap", // Judul Jendela untuk AHK
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js'), // Path ke preload script
-            contextIsolation: true, 
-            nodeIntegration: false, 
-            // devTools: !app.isPackaged // Aktifkan DevTools hanya saat development
+            preload: path.join(__dirname, 'preload.js'),
+            contextIsolation: true,
+            nodeIntegration: false,
         }
     });
 
-    mainWindow.loadFile('index.html'); // Halaman awal aplikasi Electron-mu
+    mainWindow.loadFile('index.html'); // Halaman awalmu
 
-    if (!app.isPackaged) { // Buka DevTools jika tidak dalam mode produksi (setelah di-package)
+    if (!app.isPackaged) {
         mainWindow.webContents.openDevTools();
     }
 
     mainWindow.on('closed', () => {
         console.log("MAIN_PROCESS: Jendela utama ditutup.");
-        mainWindow = null; // Hapus referensi saat jendela ditutup
+        mainWindow = null;
     });
 
-    // Log saat jendela difokuskan atau kehilangan fokus (untuk debug)
     mainWindow.on('focus', () => {
         console.log("MAIN_PROCESS: Jendela utama mendapat fokus.");
     });
@@ -53,13 +55,12 @@ function createWindow() {
 }
 
 function createHttpServerForDslrBoothTriggers() {
-    const triggerPort = 12346; // Port unik untuk trigger dslrBooth
-    const triggerHost = '127.0.0.1'; // Hanya dengarkan request dari localhost
+    const triggerPort = 12346; 
+    const triggerHost = '127.0.0.1';
 
     const server = http.createServer((req, res) => {
         let requestUrl;
         try {
-            // Gunakan constructor URL untuk parsing yang lebih aman dan lengkap
             requestUrl = new URL(req.url, `http://${req.headers.host || triggerHost}`);
         } catch (e) {
             console.warn(`MAIN_PROCESS (HTTP Trigger Server): URL tidak valid diterima: ${req.url}, Error: ${e.message}`);
@@ -69,27 +70,21 @@ function createHttpServerForDslrBoothTriggers() {
         }
         
         const eventType = requestUrl.searchParams.get('event_type');
-        const param1 = requestUrl.searchParams.get('param1');
-        const param2 = requestUrl.searchParams.get('param2');
-
         console.log(`-----------------------------------------------------`);
         console.log(`MAIN_PROCESS (HTTP Trigger Server): Menerima request: ${req.method} ${requestUrl.pathname}${requestUrl.search}`);
         console.log(`MAIN_PROCESS (HTTP Trigger Server): Event Type  : ${eventType}`);
-        console.log(`MAIN_PROCESS (HTTP Trigger Server): Param1      : ${param1}`);
-        console.log(`MAIN_PROCESS (HTTP Trigger Server): Param2      : ${param2}`);
 
         if (eventType === 'session_end') {
             console.log("MAIN_PROCESS (HTTP Trigger Server): Event 'session_end' diterima!");
             if (mainWindow && !mainWindow.isDestroyed()) {
                 console.log("MAIN_PROCESS (HTTP Trigger Server): mainWindow ditemukan. Mencoba memfokuskan via AHK...");
                 
-                const paymentAppWindowTitle = mainWindow.getTitle(); // Ambil judul jendela saat ini
+                const paymentAppWindowTitle = mainWindow.getTitle();
                 console.log(`MAIN_PROCESS (HTTP Trigger Server): Judul jendela payment app: "${paymentAppWindowTitle}"`);
 
-                dslrboothService.focusPaymentApplication(paymentAppWindowTitle) // Panggil fungsi AHK
+                dslrboothService.focusPaymentApplication(paymentAppWindowTitle)
                     .then(message => {
                         console.log(`MAIN_PROCESS (HTTP Trigger Server): Hasil dari focusPaymentApplication AHK: ${message}`);
-                        // Verifikasi tambahan apakah jendela benar-benar fokus jika perlu
                         if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isFocused()) {
                             console.warn("MAIN_PROCESS (HTTP Trigger Server): AHK dipanggil, tapi jendela utama belum fokus. Mencoba Electron focus lagi.");
                             if (mainWindow.isMinimized()) mainWindow.restore();
@@ -99,7 +94,6 @@ function createHttpServerForDslrBoothTriggers() {
                     })
                     .catch(err => {
                         console.error("MAIN_PROCESS (HTTP Trigger Server): Error saat memanggil focusPaymentApplication AHK:", err);
-                        // Fallback ke metode Electron jika AHK gagal total
                         if (mainWindow && !mainWindow.isDestroyed()) {
                             if (mainWindow.isMinimized()) mainWindow.restore();
                             mainWindow.show();
@@ -108,7 +102,7 @@ function createHttpServerForDslrBoothTriggers() {
                     });
 
             } else {
-                console.warn("MAIN_PROCESS (HTTP Trigger Server): Event 'session_end' diterima, TAPI mainWindow tidak ada atau sudah dihancurkan.");
+                console.warn("MAIN_PROCESS (HTTP Trigger Server): Event 'session_end' diterima, TAPI mainWindow tidak ada.");
             }
             res.writeHead(200, { 'Content-Type': 'text/plain' });
             res.end('Event session_end diterima dan permintaan fokus dikirim.');
@@ -126,24 +120,17 @@ function createHttpServerForDslrBoothTriggers() {
 
     server.listen(triggerPort, triggerHost, () => {
         console.log(`MAIN_PROCESS: Server HTTP untuk trigger dslrBooth berjalan di http://${triggerHost}:${triggerPort}`);
-        console.log(`MAIN_PROCESS: Pastikan URL Trigger di dslrBooth diatur ke: http://${triggerHost}:${triggerPort}/ (atau path spesifik jika ada)`);
     });
 
     server.on('error', (err) => {
         console.error('MAIN_PROCESS: Error pada server HTTP trigger dslrBooth:', err);
-        if (err.code === 'EADDRINUSE') {
-            console.error(`MAIN_PROCESS: Port ${triggerPort} sudah digunakan. Silakan gunakan port lain atau tutup aplikasi yang menggunakan port tersebut.`);
-            if (mainWindow && !mainWindow.isDestroyed()) {
-                mainWindow.webContents.send('app:error', { message: `Port ${triggerPort} untuk trigger dslrBooth sudah digunakan.` });
-            }
-        }
     });
 }
 
 app.whenReady().then(() => {
     console.log("MAIN_PROCESS: App ready.");
     createWindow();
-    createHttpServerForDslrBoothTriggers(); // Jalankan server HTTP mini setelah jendela dibuat
+    createHttpServerForDslrBoothTriggers(); 
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
@@ -154,7 +141,6 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
-    console.log("MAIN_PROCESS: Semua jendela ditutup.");
     if (process.platform !== 'darwin') {
         app.quit();
     }
@@ -163,69 +149,61 @@ app.on('window-all-closed', () => {
 // --- IPC Handlers ---
 
 ipcMain.handle('qris:create-transaction', async (event, payloadFromRenderer) => {
-    console.log('MAIN_PROCESS: Menerima permintaan createQrisTransaction:', payloadFromRenderer);
+    console.log('MAIN_PROCESS: Menerima permintaan createQrisTransaction (Midtrans):', payloadFromRenderer);
     try {
-        const tripayPayload = {
-            amount: payloadFromRenderer.amount,
-            method: payloadFromRenderer.method,
-            customer_name: payloadFromRenderer.customer_name,
-            customer_email: payloadFromRenderer.customer_email,
-            order_items: payloadFromRenderer.order_items,
-            merchant_ref: payloadFromRenderer.paymentContext?.electron_internal_ref || `QRIS-${Date.now()}`
-        };
-        const paymentContext = payloadFromRenderer.paymentContext;
-
-        const result = await tripayService.createTransaction(tripayPayload); 
-        console.log('MAIN_PROCESS: Hasil dari tripayService.createTransaction (Electron):', result);
+        const result = await midtransService.createQrisTransaction(
+            MIDTRANS_SERVER_KEY_ELECTRON,
+            MIDTRANS_IS_PRODUCTION_ELECTRON,
+            payloadFromRenderer
+        );
         
-        if (result.success && result.data && result.data.reference) {
-            pendingQrisTransactionsContext[result.data.reference] = {
+        if (result.success && result.data && result.data.order_id) {
+            const paymentContext = payloadFromRenderer.paymentContext;
+            pendingQrisTransactionsContext[result.data.order_id] = {
                 ...paymentContext,
-                electron_merchant_ref_sent_to_tripay: tripayPayload.merchant_ref 
+                midtrans_transaction_id: result.data.reference
             };
-            console.log('MAIN_PROCESS: Konteks pembayaran disimpan untuk TriPay ref:', result.data.reference, pendingQrisTransactionsContext[result.data.reference]);
+            console.log('MAIN_PROCESS: Konteks pembayaran disimpan untuk Midtrans Order ID:', result.data.order_id);
         }
         return result;
     } catch (error) {
-        console.error('MAIN_PROCESS: Error di createQrisTransaction handler:', error);
-        return { success: false, message: error.message || 'Gagal membuat transaksi di main process.' };
+        console.error('MAIN_PROCESS: Error di createQrisTransaction handler (Midtrans):', error);
+        return { success: false, message: error.message || 'Gagal membuat transaksi Midtrans.' };
     }
 });
 
 ipcMain.handle('qris:check-status', async (event, dataFromRenderer) => {
-    const reference = typeof dataFromRenderer === 'string' ? dataFromRenderer : dataFromRenderer.reference;
-    const electronRefForNotification = typeof dataFromRenderer === 'string' ? null : dataFromRenderer.electronRef;
-
-    console.log('MAIN_PROCESS: Menerima permintaan checkQrisStatus untuk TriPay reference:', reference);
+    const orderId = typeof dataFromRenderer === 'object' ? dataFromRenderer.order_id : dataFromRenderer;
+    console.log('MAIN_PROCESS: Menerima permintaan checkQrisStatus (Midtrans) untuk Order ID:', orderId);
     try {
-        const result = await tripayService.checkTransactionStatus(reference);
-        console.log('MAIN_PROCESS: Hasil dari tripayService.checkTransactionStatus (Electron):', result);
-
+        const result = await midtransService.checkTransactionStatus(
+            MIDTRANS_SERVER_KEY_ELECTRON,
+            MIDTRANS_IS_PRODUCTION_ELECTRON,
+            orderId
+        );
+        
         if (result.success && result.data && result.data.status === 'PAID') {
-            console.log('MAIN_PROCESS: Status QRIS PAID terdeteksi. Memberitahu backend API lokal...');
+            console.log('MAIN_PROCESS: Status Midtrans PAID terdeteksi. Memberitahu backend API lokal...');
             
-            const paymentContext = pendingQrisTransactionsContext[reference];
+            const paymentContext = pendingQrisTransactionsContext[orderId];
             let notificationPayload;
 
             if (!paymentContext) {
-                console.warn(`MAIN_PROCESS: Konteks pembayaran untuk ref ${reference} tidak ditemukan! Mengirim data minimal ke backend.`);
+                console.warn(`MAIN_PROCESS: Konteks pembayaran untuk Order ID ${orderId} tidak ditemukan! Mengirim data minimal.`);
                 notificationPayload = {
-                    tripay_reference: result.data.reference,
-                    electron_merchant_ref: electronRefForNotification || result.data.merchant_ref || `EL-${result.data.reference}`,
+                    tripay_reference: result.data.order_id,
+                    electron_merchant_ref: `EL-${result.data.order_id}`,
                     final_amount: result.data.amount,
-                    base_amount: result.data.amount, // Fallback jika tidak ada info diskon
+                    base_amount: result.data.amount,
                     discount_applied: 0,
                     voucher_code_used: null,
-                    customer_name: result.data.customer_name,
-                    customer_email: result.data.customer_email,
-                    customer_phone: result.data.customer_phone,
                     paid_at_timestamp: result.data.paid_at,
-                    notes: `Pembayaran QRIS via Electron. Konteks asli tidak ditemukan.`
+                    notes: `Pembayaran Midtrans QRIS. Konteks asli tidak ditemukan.`
                 };
             } else {
                 notificationPayload = {
-                    tripay_reference: result.data.reference,
-                    electron_merchant_ref: paymentContext.electron_internal_ref || paymentContext.electron_merchant_ref_sent_to_tripay || result.data.merchant_ref,
+                    tripay_reference: result.data.order_id,
+                    electron_merchant_ref: paymentContext.electron_internal_ref,
                     final_amount: result.data.amount,
                     base_amount: paymentContext.base_amount_original,
                     discount_applied: paymentContext.discount_applied_calculated,
@@ -234,7 +212,7 @@ ipcMain.handle('qris:check-status', async (event, dataFromRenderer) => {
                     customer_email: result.data.customer_email,
                     customer_phone: result.data.customer_phone,
                     paid_at_timestamp: result.data.paid_at,
-                    notes: `Pembayaran QRIS via Electron. Ref TriPay: ${result.data.reference}`
+                    notes: `Pembayaran Midtrans QRIS. Ref: ${result.data.reference}`
                 };
             }
 
@@ -242,36 +220,32 @@ ipcMain.handle('qris:check-status', async (event, dataFromRenderer) => {
                 console.log("MAIN_PROCESS: Mengirim notifikasi PAID ke backend API lokal:", notificationPayload);
                 const apiResponse = await axios.post(`${BACKEND_API_URL_ELECTRON}/api/transactions/notify-qris-paid`, notificationPayload);
                 console.log('MAIN_PROCESS: Respons dari backend API setelah notifikasi PAID:', apiResponse.data);
-                if (!apiResponse.data.success) {
-                    console.warn('MAIN_PROCESS: Backend API lokal merespons dengan gagal saat mencatat transaksi:', apiResponse.data.message);
-                }
             } catch (apiError) {
                 console.error('MAIN_PROCESS: Gagal mengirim notifikasi PAID ke backend API lokal:', 
                     apiError.response ? JSON.stringify(apiError.response.data, null, 2) : apiError.message);
             }
             
             if (paymentContext) {
-                delete pendingQrisTransactionsContext[reference];
-                console.log("MAIN_PROCESS: Konteks untuk ref", reference, "dihapus.");
+                delete pendingQrisTransactionsContext[orderId];
             }
         }
         return result;
     } catch (error) {
-        console.error('MAIN_PROCESS: Error di checkQrisStatus handler:', error);
-        return { success: false, message: error.message || 'Gagal mengecek status transaksi di main process.' };
+        console.error('MAIN_PROCESS: Error di checkQrisStatus handler (Midtrans):', error);
+        return { success: false, message: error.message || 'Gagal mengecek status transaksi Midtrans.' };
     }
 });
 
 ipcMain.on('dslrbooth:start-session', async () => {
     console.log('MAIN_PROCESS: Menerima permintaan startDslrBooth dari renderer.');
     try {
-        const message = await dslrboothService.ensureDslrBoothActive(); // Ini memanggil AHK untuk DSLRBooth
-        console.log('MAIN_PROCESS: Pesan dari dslrboothService.ensureDslrBoothActive:', message);
+        const message = await dslrboothService.ensureDslrBoothActive();
+        console.log('MAIN_PROCESS: Pesan dari dslrboothService:', message);
         if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('dslrbooth:status-update', { success: true, message });
         }
     } catch (error) {
-        console.error('MAIN_PROCESS: Error saat ensureDslrBoothActive:', error);
+        console.error('MAIN_PROCESS: Error saat memulai DSLRBooth:', error);
         if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('dslrbooth:status-update', { success: false, message: error.message || error.toString() });
         }

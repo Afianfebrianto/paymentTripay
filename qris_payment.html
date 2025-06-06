@@ -9,7 +9,7 @@
         default-src 'self'; 
         script-src 'self' 'unsafe-inline'; 
         style-src 'self' 'unsafe-inline'; 
-        img-src 'self' data: https://tripay.co.id;
+        img-src 'self' data: https://*.midtrans.com;
         connect-src 'self' http://localhost:4000; 
       "
     />
@@ -33,7 +33,6 @@
       .back-button:hover {
         background-color: darkgoldenrod;
       }
-      /* Tambahkan style lain dari file HTML-mu jika ada yang relevan untuk container utama */
       body {
         font-family: Arial, sans-serif;
         margin: 20px;
@@ -86,7 +85,7 @@
       <header>
         <h1>Welcome ShooteraSnap</h1>
         <p class="base-price">
-          Harga Normal: Rp <span id="hargaNormal">30,000</span>
+          Harga Normal: Rp <span id="hargaNormal">35,000</span>
         </p>
       </header>
 
@@ -154,13 +153,10 @@
       </section>
     </div>
 
-    <!-- Tombol kembali -->
     <button class="back-button" id="backButton">← Kembali</button>
 
-    <!-- Script dari renderer -->
     <script src="./renderer.js"></script>
 
-    <!-- Script tombol kembali -->
     <script>
       const backBtn = document.getElementById("backButton");
       if (backBtn) {

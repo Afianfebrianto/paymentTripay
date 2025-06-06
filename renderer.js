@@ -20,15 +20,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Logika untuk payment.html ---
-    // Asumsi di payment.html ada elemen dengan ID qrisMethod dan kodeMethod
-    const qrisMethodButton = document.getElementById('qrisMethod'); // Ganti dengan ID sebenarnya
-    const kodeMethodButton = document.getElementById('kodeMethod'); // Ganti dengan ID sebenarnya
-
-    if (qrisMethodButton) {
-        qrisMethodButton.addEventListener('click', () => goToPage('qris_payment.html'));
+    // Di payment.html, asumsikan ada elemen dengan onclick="goToQRIS()" dan onclick="goToKode()"
+    // Kode di bawah ini hanya untuk referensi jika kamu beralih ke event listener
+    const qrisMethodDiv = document.querySelector('.method[onclick="goToQRIS()"]');
+    const kodeMethodDiv = document.querySelector('.method[onclick="goToKode()"]');
+    if (qrisMethodDiv) {
+        // qrisMethodDiv.addEventListener('click', () => goToPage('qris_payment.html'));
     }
-    if (kodeMethodButton) {
-        kodeMethodButton.addEventListener('click', () => goToPage('kode_payment.html'));
+    if (kodeMethodDiv) {
+        // kodeMethodDiv.addEventListener('click', () => goToPage('kode_payment.html'));
     }
 
 
@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorMessageQRIS = document.getElementById('errorMessage');
 
     if (payButtonQRIS && hargaNormalElementQRIS) { // Berarti kita di qris_payment.html
-        const BASE_PRICE_QRIS = parseFloat(hargaNormalElementQRIS.textContent.replace(/[^0-9]/g, '')) || 35000;
+        const BASE_PRICE_QRIS = parseFloat(hargaNormalElementQRIS.textContent.replace(/[^0-9]/g, '')) || 30000;
         hargaNormalElementQRIS.textContent = BASE_PRICE_QRIS.toLocaleString('id-ID');
 
         payButtonQRIS.addEventListener('click', async () => {
@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const qrisTransactionPayloadToMain = {
                     amount: finalAmount,
-                    method: 'QRIS',
+                    method: 'QRIS', // Ini hanya untuk info, karena di service akan di-set 'qris'
                     customer_name: 'Pelanggan ShooteraSnap',
                     customer_email: 'customer@shooterasnap.com',
                     order_items: [{
@@ -114,11 +114,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (typeof window.electronAPI === 'undefined' || typeof window.electronAPI.createQrisTransaction !== 'function') {
                     throw new Error("Fungsi createQrisTransaction tidak tersedia di Electron API (preload.js).");
                 }
-                const tripayResult = await window.electronAPI.createQrisTransaction(qrisTransactionPayloadToMain);
-                console.log("RENDERER: Respons dari createQrisTransaction (main process):", tripayResult);
+                const midtransResult = await window.electronAPI.createQrisTransaction(qrisTransactionPayloadToMain);
+                console.log("RENDERER: Respons dari createQrisTransaction (main process):", midtransResult);
 
-                if (tripayResult.success && tripayResult.data) {
-                    const paymentInfo = tripayResult.data;
+                if (midtransResult.success && midtransResult.data) {
+                    const paymentInfo = midtransResult.data;
                     paymentMethodTextQRIS.textContent = paymentInfo.payment_name || 'QRIS';
                     paymentAmountTextQRIS.textContent = parseInt(paymentInfo.amount).toLocaleString('id-ID');
                     
@@ -132,9 +132,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     paymentDetailsSectionQRIS.style.display = 'block';
                     paymentStatusTextQRIS.textContent = `Menunggu Pembayaran (${paymentInfo.status})`;
                     
-                    pollQrisStatus(paymentInfo.reference, electronInternalRef); // Kirim juga ref internal jika perlu
+                    pollQrisStatus(paymentInfo.order_id, electronInternalRef); // Gunakan Order ID untuk polling
                 } else {
-                    throw new Error(tripayResult.message || "Gagal membuat transaksi QRIS via Electron main process.");
+                    throw new Error(midtransResult.message || "Gagal membuat transaksi QRIS via Electron main process.");
                 }
 
             } catch (error) {
@@ -147,11 +147,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    async function pollQrisStatus(transactionReference, electronRef) {
-        console.log(`RENDERER: Memulai polling untuk QRIS ref: ${transactionReference}`);
+    async function pollQrisStatus(orderId, electronRef) {
+        console.log(`RENDERER: Memulai polling untuk Midtrans Order ID: ${orderId}`);
         paymentStatusTextQRIS.textContent = 'Mengecek status pembayaran...';
         let attempts = 0;
-        const maxAttempts = 120; // Polling hingga 10 menit (120 * 5 detik)
+        const maxAttempts = 120; // Polling hingga 10 menit
         const interval = 5000;
 
         const intervalId = setInterval(async () => {
@@ -168,8 +168,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (typeof window.electronAPI === 'undefined' || typeof window.electronAPI.checkQrisStatus !== 'function') {
                     throw new Error("Fungsi checkQrisStatus tidak tersedia.");
                 }
-                // Kirim electronRef ke main process jika perlu untuk notifikasi ke backend
-                const statusResult = await window.electronAPI.checkQrisStatus({ reference: transactionReference, electronRef: electronRef });
+                // Kirim objek ke main.js
+                const statusResult = await window.electronAPI.checkQrisStatus({ 
+                    order_id: orderId, 
+                    electronRef: electronRef // Kirim juga ref internal jika perlu
+                });
                 console.log("RENDERER: Respons status QRIS dari main process:", statusResult);
 
                 if (statusResult.success && statusResult.data) {
@@ -183,19 +186,19 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (typeof window.electronAPI.startDslrBooth === 'function') {
                             window.electronAPI.startDslrBooth();
                         } else { console.error("Fungsi startDslrBooth tidak tersedia.");}
-                        setTimeout(() => goToPage("index.html"), 4000);
-                    } else if (statusResult.data.status === 'EXPIRED' || statusResult.data.status === 'FAILED') {
+                        // setTimeout(() => goToPage("index.html"), 3000); // Dikomentari untuk tes trigger dari dslrBooth
+                    } else if (statusResult.data.status === 'EXPIRED' || statusResult.data.status === 'CANCEL' || statusResult.data.status === 'DENY') {
                         clearInterval(intervalId);
                         paymentStatusTextQRIS.textContent = `Pembayaran ${statusResult.data.status}`;
                         paymentStatusTextQRIS.style.color = 'red';
-                        errorMessageQRIS.textContent = `Pembayaran ${statusResult.data.status}.`;
+                        errorMessageQRIS.textContent = `Pembayaran ${statusResult.data.status}. Silakan coba buat transaksi baru.`;
                         errorMessageQRIS.style.display = 'block';
                         payButtonQRIS.disabled = false;
                     }
                 }
             } catch (error) { 
                 console.error("RENDERER: Error saat polling status QRIS:", error);
-                // Hentikan polling jika ada error fundamental
+                // Pertimbangkan untuk menghentikan polling jika ada error fundamental
                 // clearInterval(intervalId);
                 // paymentStatusTextQRIS.textContent = 'Error polling.';
                 // errorMessageQRIS.textContent = error.message;
@@ -205,13 +208,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }, interval);
     }
 
-
     // --- Logika untuk kode_payment.html ---
     const kodePembayaranInput = document.getElementById('kodePembayaran');
-    const verifikasiKodeButton = document.getElementById('verifikasiKodeButton');
+    const verifikasiKodeButton = document.querySelector('button[onclick="verifikasiKode()"]'); // Ambil dengan selector onclick
     const messageBoxKode = document.getElementById('messageBox');
 
     if (kodePembayaranInput && verifikasiKodeButton && messageBoxKode) {
+        // Ganti onclick dengan event listener
+        verifikasiKodeButton.removeAttribute('onclick');
+        verifikasiKodeButton.id = 'verifikasiKodeButton'; // Beri ID
+        
         verifikasiKodeButton.addEventListener('click', async () => {
             console.log("RENDERER: Tombol Verifikasi Kode diklik");
             const kode = kodePembayaranInput.value.trim();
@@ -231,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await fetch(`${BACKEND_API_URL}/api/cash-codes/redeem`, {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'application/json', 
                         'Accept': 'application/json'
                         // 'X-Electron-App-Id': await window.electronAPI.getElectronAppId() // Jika perlu
                     },
@@ -247,15 +253,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     alert('Pembayaran dengan Kode Berhasil! Photobooth akan dimulai.');
                     if (typeof window.electronAPI.startDslrBooth === 'function') {
                         window.electronAPI.startDslrBooth();
-                    } else { console.error("Fungsi startDslrBooth tidak tersedia.");}
-                    setTimeout(() => goToPage("index.html"), 3000);
+                    }
+                    // setTimeout(() => goToPage("index.html"), 3000); // Dikomentari untuk tes trigger dari dslrBooth
                 } else {
-                    messageBoxKode.textContent = result.message || "Kode salah atau tidak valid. Silakan coba lagi.";
+                    messageBoxKode.textContent = result.message || "Kode salah atau tidak valid.";
                     messageBoxKode.className = "message error";
                 }
             } catch (error) {
                 console.error("RENDERER: Error saat verifikasi kode cash:", error);
-                messageBoxKode.textContent = "Terjadi kesalahan koneksi atau server. Coba lagi nanti.";
+                messageBoxKode.textContent = "Terjadi kesalahan koneksi atau server.";
                 messageBoxKode.className = "message error";
             } finally {
                 verifikasiKodeButton.disabled = false;
@@ -269,12 +275,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Tombol kembali global (jika ada di beberapa halaman)
-    const backButtons = document.querySelectorAll(".back-button"); // Bisa lebih dari satu
+    // Tombol kembali global
+    const backButtons = document.querySelectorAll(".back-button");
     if (backButtons.length > 0) {
         backButtons.forEach(button => {
             button.addEventListener("click", () => {
-                // Logika kembali bisa lebih pintar, atau default ke payment.html
                 if (currentPagePath.includes('qris_payment.html') || currentPagePath.includes('kode_payment.html')) {
                     goToPage("payment.html");
                 } else if (currentPagePath.includes('payment.html')) {
@@ -287,12 +292,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Fungsi global goBack jika masih ada onclick di HTML (sebaiknya dihindari)
-function goBack() {
+// Fungsi global jika masih ada onclick di HTML (sebaiknya dihindari dan diganti dengan listener)
+function goToQRIS() { window.location.href = "qris_payment.html"; }
+function goToKode() { window.location.href = "kode_payment.html"; }
+function verifikasiKode() { 
+    console.warn("Fungsi verifikasiKode() global dipanggil. Sebaiknya gunakan event listener."); 
+    document.getElementById('verifikasiKodeButton')?.click(); 
+}
+function goBack() { 
     console.warn("Fungsi goBack() global dipanggil. Sebaiknya gunakan event listener.");
-    if (window.location.pathname.includes('qris_payment.html') || window.location.pathname.includes('kode_payment.html')) {
+    const path = window.location.pathname;
+    if (path.includes('qris_payment.html') || path.includes('kode_payment.html')) {
         window.location.href = "payment.html";
-    } else if (window.location.pathname.includes('payment.html')) {
+    } else if (path.includes('payment.html')) {
          window.location.href = "index.html";
     } else {
         window.history.back();
