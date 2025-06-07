@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     if (qrisPageElements.payButton) {
-        const BASE_PRICE_QRIS = parseFloat(qrisPageElements.hargaNormalElement.textContent.replace(/[^0-9]/g, '')) || 35000;
+        const BASE_PRICE_QRIS = parseFloat(qrisPageElements.hargaNormalElement.textContent.replace(/[^0-9]/g, '')) || 30000;
         qrisPageElements.hargaNormalElement.textContent = BASE_PRICE_QRIS.toLocaleString('id-ID');
         
         if(qrisPageElements.backButton1) qrisPageElements.backButton1.addEventListener('click', () => goToPage('payment.html'));
