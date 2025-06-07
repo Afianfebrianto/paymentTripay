@@ -1,62 +1,48 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <title>Selamat Datang di ShooteraSnap</title>
     <link rel="stylesheet" href="style.css" />
-    <style>
-      body {
-        background-color: white;
-        font-family: Arial, sans-serif;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        margin: 0;
-      }
-
-      .container {
-        text-align: center;
-      }
-
-      .logo {
-        max-width: 200px;
-        margin-bottom: 20px;
-      }
-
-      .title {
-        color: black;
-        font-size: 2em;
-        margin-bottom: 20px;
-      }
-
-      button {
-        padding: 10px 90px;
-        font-size: 1.2em;
-        cursor: pointer;
-        border: none;
-        background-color: #000;
-        color: #fff;
-        border-radius: 8px;
-      }
-
-      button:hover {
-        background-color: #333;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <img src="./assets/Logo.png" alt="Logo ShooteraSnap" class="logo" />
-      <h1 class="title">ShooteraSnap</h1>
-      <button id="startBtn">Start</button>
+    <!-- Impor Font Awesome untuk Ikon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+    <div class="logo-container">
+        <img src="./assets/Logo.png" alt="Logo ShooteraSnap" />
+        <span>Sudut Lagi</span>
     </div>
 
-    <script>
-      document.getElementById("startBtn").addEventListener("click", () => {
-        // Arahkan ke halaman pembayaran
-        window.location.href = "payment.html";
-      });
-    </script>
-  </body>
+    <div class="instruction-container">
+        <div class="instruction-column">
+            <h3>CARA PEMBAYARAN QRIS</h3>
+            <ul>
+                <li>Pilih metode pembayaran QRIS.</li>
+                <li>Masukkan kode voucher jika memiliki voucher khusus pembayaran QRIS lalu tekan Bayar.</li>
+                <li>Jika tidak memiliki voucher, silahkan langsung tekan Bayar.</li>
+                <li>Lakukan pembayaran melalui kode QRIS yang muncul.</li>
+                <li>Setelah melakukan pembayaran, aplikasi foto otomatis terbuka dan silahkan melakukan sesi berfoto.</li>
+            </ul>
+        </div>
+
+        <div class="main-container">
+            <div class="content-box start-button-box">
+                <h1 class="page-title">TEKAN UNTUK MEMULAI</h1>
+                <button id="startBtn">Mulai</button>
+            </div>
+        </div>
+
+        <div class="instruction-column">
+            <h3>CARA PEMBAYARAN TUNAI/VOUCHER</h3>
+            <ul>
+                <li>Lakukan pembayaran secara tunai di kasir lalu kasir akan memberikan kode voucher.</li>
+                <li>Pilih metode pembayaran Tunai/Voucher.</li>
+                <li>Masukkan kode voucher yang telah diberikan oleh kasir lalu tekan Klaim Sekarang.</li>
+                <li>Aplikasi foto otomatis terbuka dan silahkan melakukan sesi berfoto.</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script src="./renderer.js"></script>
+</body>
 </html>
