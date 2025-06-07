@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 // main.js (Electron App)
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
@@ -11,10 +13,9 @@ const midtransService = require('./src/services/midtransService');
 const dslrboothService = require('./src/services/dslrboothService');
 
 // --- Konfigurasi ---
-const BACKEND_API_URL_ELECTRON = 'http://localhost:4000'; // URL Backend API lokalmu
-// PENTING: Ganti dengan kunci Midtrans-mu. Simpan di tempat yang lebih aman jika perlu.
-const MIDTRANS_SERVER_KEY_ELECTRON = "SB-Mid-server-jb5uDdLw3XTs5f89SMHv88jd"; 
-const MIDTRANS_IS_PRODUCTION_ELECTRON = false; // Set true untuk produksi
+const BACKEND_API_URL_ELECTRON = process.env.BACKEND_API_URL || 'http://localhost:4000';
+const MIDTRANS_SERVER_KEY_ELECTRON = process.env.MIDTRANS_SERVER_KEY;
+const MIDTRANS_IS_PRODUCTION_ELECTRON = process.env.MIDTRANS_IS_PRODUCTION === 'true';
 
 let mainWindow;
 const pendingQrisTransactionsContext = {}; // Simpan konteks pembayaran QRIS

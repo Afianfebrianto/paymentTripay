@@ -4,7 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentPagePath = window.location.pathname;
     console.log("Renderer JS Loaded for page:", currentPagePath);
 
-    const BACKEND_API_URL = 'http://localhost:4000'; 
+    const BACKEND_API_URL = 'http://localhost:4000';
+
 
     // --- Fungsi Navigasi ---
     function goToPage(page) {
@@ -323,5 +324,79 @@ document.addEventListener('DOMContentLoaded', () => {
             // Beri fokus kembali ke input field setelah tombol ditekan
             kodePembayaranInputForKeyboard.focus();
         });
+    }
+
+     // --- Logika Keyboard Virtual untuk Halaman QRIS ---
+    const qrisVoucherInput = document.getElementById('voucherCode');
+    const qrisKeyboardContainer = document.getElementById('virtual-keyboard');
+
+    if (qrisVoucherInput && qrisKeyboardContainer && currentPagePath.includes('qris_payment.html')) {
+        console.log("RENDERER: Inisialisasi keyboard virtual untuk halaman QRIS.");
+
+        // Fungsi untuk membuat keyboard
+        function createKeyboard() {
+            const keysLayout = [
+                ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
+                ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
+                ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
+                ["Z", "X", "C", "V", "B", "N", "M"],
+                ["Backspace", "Clear"]
+            ];
+            
+            qrisKeyboardContainer.innerHTML = ''; // Kosongkan dulu
+            keysLayout.forEach(row => {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'keyboard-row';
+                row.forEach(key => {
+                    const keyButton = document.createElement('button');
+                    keyButton.className = 'keyboard-key';
+                    keyButton.dataset.key = key;
+
+                    if (key === "Backspace") {
+                        keyButton.innerHTML = '<i class="fas fa-backspace"></i>';
+                        keyButton.classList.add('key-special');
+                    } else if (key === "Clear") {
+                        keyButton.textContent = 'Clear';
+                        keyButton.classList.add('key-special');
+                    } else {
+                        keyButton.textContent = key;
+                    }
+                    rowDiv.appendChild(keyButton);
+                });
+                qrisKeyboardContainer.appendChild(rowDiv);
+            });
+        }
+
+        // Tampilkan keyboard saat input di-fokus (diklik)
+        qrisVoucherInput.addEventListener('focus', () => {
+            console.log("Renderer: Input voucher QRIS difokus, tampilkan keyboard.");
+            qrisKeyboardContainer.style.display = 'block';
+        });
+
+        // Event listener untuk tombol keyboard
+        qrisKeyboardContainer.addEventListener('click', (e) => {
+            const target = e.target.closest('.keyboard-key');
+            if (!target) return;
+
+            const key = target.dataset.key;
+
+            if (key === "Backspace") {
+                qrisVoucherInput.value = qrisVoucherInput.value.slice(0, -1);
+            } else if (key === "Clear") {
+                qrisVoucherInput.value = "";
+            } else {
+                qrisVoucherInput.value += key;
+            }
+            qrisVoucherInput.focus(); // Jaga fokus tetap di input
+        });
+
+        // Sembunyikan keyboard saat mengklik di luar input dan keyboard itu sendiri
+        document.addEventListener('click', (e) => {
+            if (!qrisVoucherInput.contains(e.target) && !qrisKeyboardContainer.contains(e.target)) {
+                qrisKeyboardContainer.style.display = 'none';
+            }
+        });
+
+        createKeyboard(); // Panggil fungsi untuk membuat keyboard
     }
 });

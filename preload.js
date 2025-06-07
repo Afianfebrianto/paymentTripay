@@ -37,6 +37,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // Opsional: jika perlu mendapatkan ID unik dari mesin Electron
     // getElectronAppId: () => ipcRenderer.invoke('app:get-id') 
+    // Channel BARU untuk mengambil config
+    getConfig: () => ipcRenderer.invoke('get-config') 
 });
 
 console.log('preload.js: electronAPI exposed');

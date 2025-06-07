@@ -15,6 +15,58 @@
     <link rel="stylesheet" href="style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap">
+    <style>
+        /* CSS Khusus untuk Keyboard Virtual (Ukuran Disesuaikan) */
+        #virtual-keyboard {
+            display: none; /* Awalnya disembunyikan */
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-top: 20px;
+            background-color: rgba(255, 255, 255, 0.8); /* Dibuat lebih transparan */
+            padding: 8px; /* Padding dikurangi */
+            border-radius: 16px 16px 0 0;
+            width: 100%;
+            max-width: 700px; /* Lebar maksimum keyboard dikurangi */
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        .keyboard-row {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 5px; /* Margin antar baris dikurangi */
+        }
+        .keyboard-key {
+            background-color: var(--container-bg);
+            color: var(--text-secondary);
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;   /* Font dikecilkan */
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            width: 50px;        /* Lebar tombol dikecilkan */
+            height: 50px;       /* Tinggi tombol dikecilkan */
+            margin: 3px;        /* Margin antar tombol dikecilkan */
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .keyboard-key:hover {
+            background-color: #f1f1f1;
+        }
+        .keyboard-key:active {
+            transform: scale(0.95);
+        }
+        .key-special {
+            min-width: 80px;    /* Lebar tombol spesial dikecilkan */
+            background-color: #d1d5db;
+            font-size: 0.9em;     /* Font tombol spesial dikecilkan */
+        }
+    </style>
 </head>
 <body>
     <div class="logo-container">
@@ -23,10 +75,11 @@
     </div>
 
     <div class="main-container">
+        <!-- Tampilan 1: Input Voucher -->
         <div class="content-box" id="voucherInputContainer">
             <h1 class="page-title">QRIS</h1>
             <p class="base-price">
-                Harga Normal: Rp <span id="hargaNormal">30,000</span>
+                Harga Normal: Rp <span id="hargaNormal">35,000</span>
             </p>
             <h2 class="sub-title">Masukkan kode voucher anda:</h2>
             <input type="text" class="input-field" id="voucherCode" name="voucherCode" placeholder="Ketik kode disini">
@@ -38,8 +91,9 @@
             <div id="errorMessage" class="message-box error" style="display: none;"></div>
         </div>
         
+        <!-- Tampilan 2: Tampilan QR Code (Awalnya disembunyikan) -->
         <div class="content-box" id="paymentDetailsSection" style="display: none;">
-            <h1 class="page-title" id="paymentMethodText">QRIS</h1>
+             <h1 class="page-title" id="paymentMethodText">QRIS</h1>
              <div id="qrCodeContainer" style="margin-top: 15px; text-align: center;">
                  <img id="qrCodeImage" src="" alt="QR Code Pembayaran" style="max-width: 280px; border: 1px solid #ccc; padding: 5px; border-radius: 8px;"/>
              </div>
@@ -54,6 +108,9 @@
         </div>
     </div>
     
+    <!-- Kontainer untuk Keyboard Virtual -->
+    <div id="virtual-keyboard"></div>
+
     <script src="./renderer.js"></script>
 </body>
 </html>
