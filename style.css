@@ -19,12 +19,94 @@ body {
     align-items: center;
     height: 100vh;
     margin: 0;
+    padding: 0;
     overflow: hidden;
 }
 
 /* --- Elemen Umum --- */
+.main-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: stretch; /* agar kolom sejajar ke atas */
+  gap: 40px;
+  height: 100%;
+  padding: 40px 20px;
+  flex-wrap: wrap;
+}
+ .circle-icon {
+      width: 110px;
+      height: 110px;
+      margin: 10px auto;
+      border-radius: 50%;
+      background-color: #fef054;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .circle-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
 
+.circle-content img {
+  width: 65px;
+  height: auto;
+}
+
+.circle-label {
+  font-size: 9px;
+  color: #0a0a0a; 
+  margin-top: 4px;
+  font-weight: bold;
+}
+.qris-image {
+  width: 70%;            
+  max-width: 250px;
+  margin-top: 10px;
+  border-radius: 15px;     
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+.center-image {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 100%;
+  height: auto;
+}
+.middle-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-width: 250px;
+  height: 100vh; /* penting agar bisa vertikal penuh */
+}
 .logo-container {
+  display: flex;
+  align-items: center;
+  background-color: white;
+  padding: 10px 20px;
+  border-radius: 25px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+.logo-container img {
+  height: 40px;
+  margin-right: 10px;
+}
+.logo-container span {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.top-logo-container {
     position: absolute;
     top: 40px;
     left: 50%;
@@ -39,21 +121,21 @@ body {
     z-index: 10;
 }
 
-.logo-container img {
+.top-logo-container img {
     height: 35px;
 }
 
-.logo-container span {
+.top-logo-container span {
     font-size: 1.2em;
     font-weight: 600;
     color: var(--text-primary);
 }
-
 .main-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 30px;
+  display: flex;
+  justify-content: center; /* pusat horizontal */
+  align-items: center;     /* pusat vertikal */
+  height: 100vh;           /* isi seluruh tinggi layar */
+  width: 100%;
 }
 
 .content-box {
@@ -176,33 +258,52 @@ h2.sub-title {
 
 /* Start Screen (index.html) */
 .instruction-container {
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    gap: 100px;
-    width: 100%;
-    max-width: 1200px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start; /* ubah dari stretch */
+  gap: 40px;
+  padding: 20px;
+  flex-wrap: wrap; /* agar responsive */
 }
 
 .instruction-column {
-    background-color: rgba(255, 255, 255, 0.7);
-    padding: 20px;
-    border-radius: 16px;
-    flex: 1;
+  flex: 1;
+  background-color: white;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  min-width: 300px;
+  max-width: 450px;
+  height: auto;           /* pastikan ini */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* penting agar tidak isi terbentang */
 }
+
 .instruction-column h3 { color: var(--text-primary); border-bottom: 2px solid var(--text-primary); padding-bottom: 10px; }
 .instruction-column p, .instruction-column ul { text-align: left; font-size: 0.9em;}
 .instruction-column ul { padding-left: 20px; }
 
-.start-button-box {
-    padding: 30px;
+.start-button {
+  background-color: #f6ff59;
+  color: #7a007a;
+  font-weight: bold;
+  font-size: 1.2rem;
+  padding: 20px 30px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  text-align: center;
+  margin-top: 20px;
 }
 
-.start-button-box button {
-    padding: 20px 60px;
-    font-size: 1.5em;
-    background-color: var(--button-primary-bg);
+.qris-image.center-image {
+  display: block;
+  margin: 20px auto;
+  max-width: 100%;
 }
+
 
 /* Payment Method (payment.html) */
 .method-selection-box {

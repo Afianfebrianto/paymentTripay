@@ -1,79 +1,93 @@
 <!DOCTYPE html>
 <html lang="id">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <title>Masukkan Kode Pembayaran</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+    />
     <style>
-        /* CSS Khusus untuk Keyboard Virtual (Ukuran Disesuaikan) */
-        #virtual-keyboard {
-            margin-top: 20px;
-            background-color: rgba(255, 255, 255, 0.3);
-            padding: 10px;
-            border-radius: 16px;
-            width: 100%;
-            max-width: 680px; /* Lebar maksimum keyboard dikurangi */
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        .keyboard-row {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 8px; /* Margin antar baris dikurangi */
-        }
-        .keyboard-key {
-            background-color: var(--container-bg);
-            color: var(--text-secondary);
-            border: none;
-            border-radius: 8px;
-            font-size: 1.2em;   /* Font dikecilkan */
-            font-weight: 600;
-            font-family: 'Poppins', sans-serif;
-            width: 55px;        /* Lebar tombol dikecilkan */
-            height: 55px;       /* Tinggi tombol dikecilkan */
-            margin: 4px;        /* Margin antar tombol dikecilkan */
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 3px 5px rgba(0,0,0,0.1);
-            transition: background-color 0.2s, transform 0.1s;
-        }
-        .keyboard-key:hover {
-            background-color: #f1f1f1;
-        }
-        .keyboard-key:active {
-            transform: scale(0.95);
-        }
-        .key-special {
-            min-width: 90px;    /* Lebar tombol spesial dikecilkan */
-            background-color: #d1d5db;
-            font-size: 1em;     /* Font tombol spesial dikecilkan */
-        }
+      /* CSS Khusus untuk Keyboard Virtual (Ukuran Disesuaikan) */
+      #virtual-keyboard {
+        margin-top: 20px;
+        background-color: rgba(255, 255, 255, 0.3);
+        padding: 10px;
+        border-radius: 16px;
+        width: 100%;
+        max-width: 680px; /* Lebar maksimum keyboard dikurangi */
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      }
+      .keyboard-row {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 8px; /* Margin antar baris dikurangi */
+      }
+      .keyboard-key {
+        background-color: var(--container-bg);
+        color: var(--text-secondary);
+        border: none;
+        border-radius: 8px;
+        font-size: 1.2em; /* Font dikecilkan */
+        font-weight: 600;
+        font-family: "Poppins", sans-serif;
+        width: 55px; /* Lebar tombol dikecilkan */
+        height: 55px; /* Tinggi tombol dikecilkan */
+        margin: 4px; /* Margin antar tombol dikecilkan */
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1);
+        transition: background-color 0.2s, transform 0.1s;
+      }
+      .keyboard-key:hover {
+        background-color: #f1f1f1;
+      }
+      .keyboard-key:active {
+        transform: scale(0.95);
+      }
+      .key-special {
+        min-width: 90px; /* Lebar tombol spesial dikecilkan */
+        background-color: #d1d5db;
+        font-size: 1em; /* Font tombol spesial dikecilkan */
+      }
     </style>
-</head>
-<body>
-    <div class="logo-container">
-        <img src="./assets/Logo.png" alt="Logo ShooteraSnap" />
-        <span>Sudut Lagi</span>
+  </head>
+  <body>
+    <div class="top-logo-container">
+      <img src="./assets/Logo.png" alt="Logo ShooteraSnap" />
+      <span>Sudut Lagi</span>
     </div>
 
     <div class="main-container">
-        <div class="content-box">
-            <h1 class="page-title">KLAIM KODE</h1>
-            <h2 class="sub-title">Masukkan kode pembayaran anda:</h2>
-            <input type="text" class="input-field" id="kodePembayaran" placeholder="Ketik kode disini" autocomplete="off" autofocus/>
-            <div class="button-group">
-                <button class="btn-primary-custom" id="backToPaymentMethodFromCode">← Kembali</button>
-                <button class="btn-primary-custom" id="claimCodeButton">Klaim Sekarang</button>
-            </div>
-            <div id="messageBox" class="message-box"></div>
+      <div class="content-box">
+        <h1 class="page-title">KLAIM KODE</h1>
+        <h2 class="sub-title">Masukkan kode pembayaran anda:</h2>
+        <input
+          type="text"
+          class="input-field"
+          id="kodePembayaran"
+          placeholder="Ketik kode disini"
+          autocomplete="off"
+          autofocus
+        />
+        <div class="button-group">
+          <button class="btn-primary-custom" id="backToPaymentMethodFromCode">
+            ← Kembali
+          </button>
+          <button class="btn-primary-custom" id="claimCodeButton">
+            Klaim Sekarang
+          </button>
         </div>
-        <!-- Kontainer untuk Keyboard Virtual -->
-        <div id="virtual-keyboard"></div>
+        <div id="messageBox" class="message-box"></div>
+      </div>
+      <!-- Kontainer untuk Keyboard Virtual -->
+      <div id="virtual-keyboard"></div>
     </div>
 
     <script src="./renderer.js"></script>
-</body>
+  </body>
 </html>
