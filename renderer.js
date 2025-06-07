@@ -19,6 +19,15 @@ document.addEventListener('DOMContentLoaded', () => {
         startBtn.addEventListener('click', () => goToPage('payment.html'));
     }
 
+    const splashStartButton = document.getElementById('splashStartButton');
+        if (splashStartButton) {
+            console.log("Renderer: Tombol 'splashStartButton' ditemukan.");
+            splashStartButton.addEventListener('click', () => {
+                console.log("Renderer: Tombol 'splashStartButton' diklik! Mengarahkan ke payment.html");
+                goToPage('payment.html');
+            });
+        }
+
     // --- Logika Halaman Pilih Metode (payment.html) ---
     const qrisMethodButton = document.getElementById('qrisMethod');
     if (qrisMethodButton) qrisMethodButton.addEventListener('click', () => goToPage('qris_payment.html'));

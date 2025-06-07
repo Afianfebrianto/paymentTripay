@@ -1,29 +1,215 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
     <title>Pilih Metode Pembayaran</title>
-    <link rel="stylesheet" href="style.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Impor Font Awesome untuk Ikon Panah -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        /* CSS untuk Halaman Pilihan Pembayaran */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+        body, html {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .payment-choice-container {
+            width: 100%;
+            height: 100%;
+            background-image: url('./assets/choicepayment.png'); /* Path ke gambar latar belakangmu */
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-size: cover;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .payment-box {
+            position: relative;
+            width: 80%;
+            max-width: 950px;
+            padding: 40px;
+            box-sizing: border-box;
+        }
+
+        .payment-box-title {
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .payment-options {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+        }
+
+        /* --- PERUBAHAN UTAMA PADA KARTU PILIHAN --- */
+        .option-card {
+            background-color: #f7f7f7;
+            border: 2px solid #e0e0e0;
+            border-radius: 24px; /* Semua sudut sekarang melengkung */
+            flex: 1;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            overflow: hidden; /* Penting untuk tag POPULAR dan border-radius tombol */
+            display: flex;
+            flex-direction: column; /* Mengatur layout menjadi kolom */
+            text-align: center;
+        }
+
+        .option-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Kontainer untuk konten agar padding tidak mempengaruhi tombol */
+        .option-content {
+            padding: 30px 25px 25px 25px;
+            flex-grow: 1; /* Membuat konten ini mengisi ruang yang tersedia */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .option-header {
+            margin-bottom: 15px;
+            width: 100%; /* Memastikan header mengisi ruang */
+            display: flex;
+            justify-content: center; /* Memusatkan logo/ikon */
+        }
+        
+        /* Logo diperbesar */
+        .option-header img {
+            width: auto;
+            height: 60px; /* Sesuaikan tinggi logo QRIS */
+            object-fit: contain;
+            margin-bottom: 10px;
+        }
+
+        .option-header i {
+            font-size: 60px; /* Ukuran ikon untuk tunai */
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .option-description {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 25px;
+            flex-grow: 1; /* Memastikan deskripsi mengisi ruang jika perlu */
+        }
+
+        /* Tombol diletakkan di bawah dan lebarnya penuh */
+        .option-button {
+            background-color: #0668b8;
+            color: white;
+            border: none;
+            /* Radius 0 di atas, dan radius bawah disesuaikan agar pas dengan kartu induk */
+            border-radius: 0 0 22px 22px; 
+            padding: 15px 20px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            transition: background-color 0.2s ease;
+            margin-top: auto; /* Mendorong tombol ke bawah */
+        }
+
+        .option-button:hover {
+            background-color: #4A586F;
+        }
+
+        /* Tag POPULAR disesuaikan */
+        .popular-tag {
+            position: absolute;
+            top: 10px;
+            left: -38px;
+            background-color: #E74C3C;
+            color: white;
+            padding: 5px 40px;
+            font-size: 0.8em;
+            font-weight: 700;
+            transform: rotate(-45deg);
+            transform-origin: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 2;
+        }
+        
+        .back-button {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            padding: 12px 25px;
+            font-size: 1em;
+            font-weight: 600;
+            background-color: #2F3B4C;
+            color: white;
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-button:hover {
+            background-color: #4A586F;
+        }
+
+    </style>
 </head>
 <body>
-    <div class="top-logo-container">
-        <img src="./assets/Logo.png" alt="Logo ShooteraSnap" />
-        <span>Sudut Lagi</span>
-    </div>
-
-    <div class="main-container">
-        <div class="content-box">
-            <h1 class="page-title">PILIH PEMBAYARAN</h1>
-            <div class="method-selection-box">
-                <div class="method-button" id="qrisMethod">
-                    <i class="fas fa-qrcode"></i>
-                    <span>QRIS</span>
+    <div class="payment-choice-container">
+        <div class="payment-box">
+            <h2 class="payment-box-title">Pilih cara bayar yang cocok buat kamu</h2>
+            <div class="payment-options">
+                <!-- Opsi QRIS -->
+                <div class="option-card" id="qrisMethod">
+                    <div class="popular-tag">POPULAR</div>
+                    <div class="option-content">
+                        <div class="option-header">
+                            <img src="./assets/QRIS.png" alt="Logo QRIS">
+                        </div>
+                        <p class="option-description">
+                            Kemudahan pembayaran dari banyak bank, tinggal scan tanpa ribet.
+                        </p>
+                    </div>
+                    <div class="option-button">
+                        <span>Bayar via QRIS</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
                 </div>
-                <div class="method-button" id="kodeMethod">
-                    <i class="fas fa-ticket-alt"></i>
-                    <span>TUNAI / KODE</span>
+
+                <!-- Opsi Bayar Tunai -->
+                <div class="option-card" id="kodeMethod">
+                     <div class="option-content">
+                        <div class="option-header">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <p class="option-description">
+                            Bayar dulu di kasir kafe dan terima kode unik untuk menggunakan photobooth.
+                        </p>
+                    </div>
+                    <div class="option-button">
+                        <span>Bayar tunai</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
                 </div>
             </div>
         </div>

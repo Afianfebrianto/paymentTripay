@@ -1,59 +1,78 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
+<head>
     <meta charset="UTF-8" />
-    <title>Selamat Datang di ShooteraSnap</title>
-    <link rel="stylesheet" href="style.css" />
-    <!-- Impor Font Awesome untuk Ikon -->
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
-    />
-  </head>
-  <body>
-  <div class="main-wrapper">
-    <!-- Kolom Kiri: QRIS -->
-    <div class="instruction-column">
-      <h3>CARA PEMBAYARAN QRIS</h3>
-      <p>Pilih metode pembayaran QRIS.</p>
-      <div class="circle-icon">
-        <div class="circle-content">
-          <img src="assets/QRIS.png" alt="QRIS" />
-          <span class="circle-label">QRIS</span>
+    <title>Selamat Datang di Shootera Photobooth</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Impor Font Awesome untuk Ikon Panah -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        /* CSS untuk Halaman Awal */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap');
+
+        body, html {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Mencegah scroll */
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .splash-container {
+            width: 100%;
+            height: 100%;
+            background-image: url('./assets/UX Shootera.png'); /* Path ke gambar latar belakangmu */
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-size: cover; /* Memastikan gambar menutupi seluruh layar */
+            position: relative;
+        }
+
+        .start-button-container {
+            position: absolute;
+            bottom: 5%; /* Jarak dari bawah */
+            right: 5%;  /* Jarak dari kanan */
+        }
+
+        #splashStartButton {
+            background-color: #2F3B4C; /* Warna biru gelap dari gambar */
+            color: white;
+            border: none;
+            /* PERUBAHAN DI SINI: Atur radius sudut secara individual (top-left, top-right, bottom-right, bottom-left) */
+            border-radius: 0px 0px 30px 0px; 
+            padding: 18px 40px;
+            font-size: 1.8em; /* Ukuran font lebih besar */
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        #splashStartButton:hover {
+            transform: scale(1.05);
+            background-color: #4A586F; /* Warna sedikit lebih terang saat hover */
+        }
+
+        #splashStartButton .fas {
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="splash-container">
+        <div class="start-button-container">
+            <button id="splashStartButton">
+                Mulai sekarang!
+                <i class="fas fa-arrow-right"></i>
+            </button>
         </div>
-      </div>
-      <p>Masukkan kode voucher jika memiliki voucher khusus pembayaran QRIS lalu tekan Bayar.</p>
-      <img src="assets/qris_pay.png" alt="QRIS Pay" class="qris-image center-image" />
-      <p>Jika tidak memiliki voucher, silahkan langsung tekan Bayar. Lakukan pembayaran melalui kode QRIS yang muncul. Setelah melakukan pembayaran, aplikasi foto otomatis terbuka dan silahkan melakukan sesi berfoto.</p>
     </div>
 
-    <!-- Kolom Tengah: Logo dan Tombol -->
-    <div class="middle-column">
-      <div class="logo-container">
-        <img src="./assets/Logo.png" alt="Logo ShooteraSnap" />
-        <span>x Sudut Lagi</span>
-      </div>
-      <button id="startBtn" class="start-button">TEKAN UNTUK MEMULAI</button>
-    </div>
-
-    <!-- Kolom Kanan: Voucher -->
-    <div class="instruction-column">
-      <h3>CARA PEMBAYARAN TUNAI/VOUCHER</h3>
-      <p>Lakukan pembayaran secara tunai di kasir lalu kasir akan memberikan kode voucher.</p>
-      <p>Pilih metode pembayaran Tunai/Voucher.</p>
-      <div class="circle-icon">
-        <div class="circle-content">
-          <img src="assets/Vocher.png" alt="Voucher" />
-          <span class="circle-label">Tunai/Voucher</span>
-        </div>
-      </div>
-      <p>Masukkan kode voucher yang telah diberikan oleh kasir lalu tekan Klaim Sekarang.</p>
-      <img src="assets/kode_pay.png" alt="Kode Pay" class="qris-image center-image" />
-      <p>Aplikasi foto otomatis terbuka dan silahkan melakukan sesi berfoto.</p>
-    </div>
-  </div>
-
-  <script src="./renderer.js"></script>
+    <!-- Gunakan renderer.js yang sama -->
+    <script src="./renderer.js"></script>
 </body>
-
 </html>
