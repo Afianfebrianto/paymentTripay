@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
     errorMessageElement.style.display = 'none';
     errorMessageElement.textContent = '';
     
-    const BASE_PRICE_QRIS = parseFloat(hargaNormalElement.textContent.replace(/[^0-9]/g, '')) || 35000;
+    const BASE_PRICE_QRIS = parseFloat(hargaNormalElement.textContent.replace(/[^0-9]/g, '')) || 30000;
     const voucherCode = voucherCodeInput.value.trim();
     let finalAmount = BASE_PRICE_QRIS;
     let discountApplied = 0;
